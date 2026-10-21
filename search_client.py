@@ -136,7 +136,7 @@ class Jackett:
         self.base = os.environ.get('JACKETT_URL', 'http://jackett:9117').rstrip('/')
         self.key = os.environ.get('JACKETT_API_KEY', '')
 
-    def request(self, path, query=None, limit=6 * 1024 * 1024, timeout=5):
+    def request(self, path, query=None, limit=6 * 1024 * 1024, timeout=20):
         if not self.key:
             raise ValueError('Поиск Jackett ещё не настроен. Добавление по magnet доступно через /add.')
         url = self.base + path + ('?' + urlencode(query) if query else '')
