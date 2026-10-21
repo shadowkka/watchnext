@@ -67,7 +67,7 @@ def create_worker(data_root: Optional[str] = None) -> Worker:
         LOG.info("Telegram не настроен; запуск в режиме автономного REST API.")
         tg = DummyTelegram()
 
-    root = data_root or os.environ.get("DATA_DIR", "/data")
+    root = data_root or os.environ.get("DATA_ROOT") or "/data"
     return Worker(store, qbit, jellyfin, tg, data_root=root)
 
 
