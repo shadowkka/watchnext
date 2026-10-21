@@ -938,8 +938,8 @@ def add_subscription(body: AddSubscriptionRequest, worker: Worker = Depends(get_
         worker.follow_all()[key] = {
             "title": slug(body.title.strip()),
             "show": show_obj,
-            "quality": body.preferredQuality,
-            "voice": body.preferredVoice,
+            "quality": "" if body.preferredQuality in ("Любое", "any", "") else body.preferredQuality,
+            "voice": "" if body.preferredVoice in ("Любая", "any", "") else body.preferredVoice,
             "enabled": True,
             "since": time.time(),
             "dismissed": [],
