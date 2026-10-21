@@ -3,6 +3,8 @@
 !core.py
 !net.py
 !Dockerfile
+!requirements.txt
+!server.py
 
 !ui.py
 

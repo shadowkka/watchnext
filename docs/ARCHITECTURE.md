@@ -4,7 +4,9 @@
 
 ```mermaid
 flowchart LR
-    T[Telegram] <--> W[Python Worker]
+    A[Android App] <-->|REST API| S[FastAPI Server]
+    T[Telegram] <-->|Bot API| S
+    S <--> W[Python Worker]
     W <--> Q[qBittorrent]
     W <--> J[Jellyfin]
     Q --> D[downloads]
@@ -18,7 +20,9 @@ flowchart LR
 
 ## Процесс и состояние
 
-`app.main` читает Telegram updates, применяет завершённые поисковые/календарные запросы и запускает `Worker.tick` с интервалом около 20 секунд. Обработка и сетевые задержки могут увеличивать фактический интервал. Это не гарантия остановки торрента в момент последнего байта.
+`server.py` запускает выделенный FastAPI REST API сервер (`/api/status`, `/api/packs`, `/api/search`, `/api/subscriptions`, `/api/limits`, OpenAPI `/docs`) для управления через Android-приложение (WatchNextApp) или Web.
+
+В фоновом потоке запускается синхронизация: чтение Telegram updates (если настроен бот), применение поисковых/календарных запросов и вызов `Worker.tick` с интервалом около 20 секунд. Телеграм-бот и Android-приложение работают с единым состоянием и очередью. Если Telegram не настроен, сервер полноценно работает в режиме чистого REST API.
 
 `Store` атомарно пишет `state/state.json` через временный файл, `fsync` и replace. Только основной поток меняет очередь и выполняет файловые операции. ThreadPoolExecutor используется для Jackett/TVmaze; результаты проверяются на актуальность перед применением.
 

@@ -78,6 +78,13 @@ services:
       JELLYFIN_URL: http://jellyfin:8096
       STATE_FILE: /state/state.json
       PYTHONDONTWRITEBYTECODE: '1'
+      SERVER_PORT: ${SERVER_PORT:-8000}
+      SERVER_HOST: 0.0.0.0
+      API_TOKEN: ${API_TOKEN:-}
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${SERVER_PORT:-8000}:${SERVER_PORT:-8000}'
+    tmpfs:
+      - /tmp:size=64M,mode=1777
     volumes:
       - ${DATA_DIR:-./data}:/data
       - ./state:/state

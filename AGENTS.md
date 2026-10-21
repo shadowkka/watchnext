@@ -17,6 +17,7 @@
 | Поиск и загрузка torrent, качество/озвучки | `search_client.py`, `torrent_meta.py` | `test_search` |
 | Поиск в Telegram, фильтры, выбор начала | `search_ui.py` (`SearchUI`) | `test_search.SearchMenus` |
 | Подписки, TVmaze, два уведомления | `subscriptions.py` (`SubscriptionUI`) | `test_subscriptions` |
+| REST API сервер, FastAPI, Android API | `server.py` | `test_server` |
 | Чистая установка | `installer.py`, `install.sh`, `scripts/install-docker-ubuntu.sh` | `test_installer` |
 | Сервисы, порты, DNS | `compose.yaml`, `.env.example`, `Dockerfile`, `.dockerignore` | Compose config, installer smoke |
 
