@@ -1,0 +1,27 @@
+# Local credentials and installation state
+.env
+.env.*
+!.env.example
+access.txt
+*.pem
+*.key
+*.log
+*.tmp
+state/
+config/
+cache/
+data/
+backups/
+# Python and local tools
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+.idea/
+.vscode/
+
+# Download metadata and database files
+*.torrent
+*.db
+*.sqlite*
+._*

@@ -1,0 +1,13 @@
+*
+!app.py
+!core.py
+!net.py
+!Dockerfile
+
+!ui.py
+
+!search_ui.py
+!search_client.py
+!torrent_meta.py
+
+!subscriptions.py

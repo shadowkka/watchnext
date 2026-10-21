@@ -1,0 +1,96 @@
+name: ${COMPOSE_PROJECT_NAME:-watchnext}
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:5.2.4
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: Europe/Moscow
+      WEBUI_PORT: ${QBIT_PORT:-8080}
+      TORRENTING_PORT: ${TORRENT_PORT:-6881}
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${QBIT_PORT:-8080}:${QBIT_PORT:-8080}'
+      - '${TORRENT_PORT:-6881}:${TORRENT_PORT:-6881}'
+      - '${TORRENT_PORT:-6881}:${TORRENT_PORT:-6881}/udp'
+    volumes:
+      - ./config/qbittorrent:/config
+      - ${DATA_DIR:-./data}:/data
+    restart: unless-stopped
+  jellyfin:
+    image: jellyfin/jellyfin:12.2
+    user: '${PUID:-1000}:${PGID:-1000}'
+    environment:
+      TZ: Europe/Moscow
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${JELLYFIN_PORT:-8096}:8096'
+    volumes:
+      - ./config/jellyfin:/config
+      - ./cache/jellyfin:/cache
+      - ${DATA_DIR:-./data}/library:/data/library
+      - ${DATA_DIR:-./data}/movies:/data/movies
+    restart: unless-stopped
+  dnsproxy:
+    image: adguard/dnsproxy@sha256:4d65bafbf246b206a1af35d4263a86c35451d957458c7836304199f1cd2c1535
+    command: ["-u", "https://dns.google/dns-query", "--cache", "--listen", "0.0.0.0", "--port", "53"]
+    networks:
+      search_dns:
+        ipv4_address: ${SEARCH_DNS_IP:-172.30.53.2}
+    read_only: true
+    mem_limit: 64m
+    restart: unless-stopped
+  flaresolverr:
+    dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
+    networks: [default, search_dns]
+    depends_on: [dnsproxy]
+    image: ghcr.io/flaresolverr/flaresolverr@sha256:c80ae007ce2ccdcd217a12426e4f039ef763ff90738c808d38810c3e59323767
+    environment:
+      LOG_LEVEL: info
+      LOG_HTML: 'false'
+      TZ: Europe/Moscow
+    tmpfs:
+      - /tmp:size=256M,mode=1777
+    shm_size: 256mb
+    mem_limit: 1g
+    restart: unless-stopped
+  jackett:
+    dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
+    networks: [default, search_dns]
+    depends_on: [dnsproxy]
+    image: lscr.io/linuxserver/jackett@sha256:5e0a9785ee4edeb30a4644391d94b4ce2ba233caf2fc82915ef215ef00efc0d5
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: Europe/Moscow
+      AUTO_UPDATE: 'false'
+      DOTNET_SYSTEM_NET_DISABLEIPV6: '1'
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${JACKETT_PORT:-9117}:9117'
+    volumes:
+      - ./config/jackett:/config
+    restart: unless-stopped
+  queue:
+    build: .
+    user: '${PUID:-1000}:${PGID:-1000}'
+    env_file: .env
+    environment:
+      JACKETT_URL: http://jackett:9117
+      QBIT_URL: http://qbittorrent:${QBIT_PORT:-8080}
+      JELLYFIN_URL: http://jellyfin:8096
+      STATE_FILE: /state/state.json
+      PYTHONDONTWRITEBYTECODE: '1'
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+      - ./state:/state
+    depends_on:
+      - qbittorrent
+      - jellyfin
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+networks:
+  search_dns:
+    ipam:
+      config:
+        - subnet: ${SEARCH_DNS_SUBNET:-172.30.53.0/24}
