@@ -14,8 +14,10 @@ except ImportError:
     HAS_FASTAPI = False
 
 from app import Store, Worker
-from core import GB
-import test_queue as fixtures
+try:
+    import test_queue as fixtures
+except ImportError:
+    from tests import test_queue as fixtures
 
 H1 = 'a' * 40
 H2 = 'b' * 40
@@ -147,6 +149,43 @@ class ServerApiTest(unittest.TestCase):
         r = self.client.delete(f"/api/packs/{H1}")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(self.worker.state["seasons"]), 0)
+
+    def test_set_pack_start_and_delete_episode(self):
+        # 1. Add pack
+        add_payload = {
+            "title": "House of the Dragon",
+            "magnet": MAGNET1,
+            "kind": "series",
+            "season": 2,
+            "startEpisode": 1,
+        }
+        r = self.client.post("/api/packs/add", json=add_payload)
+        self.assertEqual(r.status_code, 200)
+        pack = self.worker.state["seasons"][0]
+
+        # Populate dummy episodes
+        pack["episodes"] = [
+            {"index": 0, "season": 2, "number": 1, "size": 100, "name": "Show.S02E01.mkv", "progress": 1.0, "published": True, "selected": True, "removed": False},
+            {"index": 1, "season": 2, "number": 2, "size": 100, "name": "Show.S02E02.mkv", "progress": 1.0, "published": True, "selected": True, "removed": False},
+            {"index": 2, "season": 2, "number": 3, "size": 100, "name": "Show.S02E03.mkv", "progress": 0.0, "published": False, "selected": True, "removed": False},
+        ]
+        self.fake_q.infos[H1] = {"state": "downloading", "progress": 0.66}
+
+        # Change start episode to 2 (skips episode index 0)
+        r = self.client.post(f"/api/packs/{H1}/from", json={"season": 2, "episode": 2})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(pack["episodes"][0].get("discarded"))
+
+        # Test deleting an episode (index 1)
+        r = self.client.delete(f"/api/packs/{H1}/episodes/1")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(pack["episodes"][1].get("removed"))
+        self.assertFalse(pack["episodes"][1].get("selected"))
+        self.assertFalse(pack["episodes"][1].get("published"))
+
+        # Test deleting non-existent episode index
+        r = self.client.delete(f"/api/packs/{H1}/episodes/99")
+        self.assertEqual(r.status_code, 404)
 
     def test_search(self):
         r = self.client.get("/api/search?query=Dragon&kind=series&minSeeders=50")

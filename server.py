@@ -614,6 +614,10 @@ def set_pack_start(pack_hash: str, body: SetStartRequest, worker: Worker = Depen
         try:
             worker.set_start(pack, body.season, body.startEpisode)
             worker.ui_autostart()
+            try:
+                worker.tick()
+            except Exception:
+                pass
             return {"status": "ok", "season": body.season, "startEpisode": body.startEpisode}
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
@@ -690,6 +694,60 @@ def delete_pack(pack_hash: str, worker: Worker = Depends(get_worker)):
         worker.refresh_needed = True
         worker.store.save()
         return {"status": "deleted"}
+
+
+@app.delete("/api/packs/{pack_hash}/episodes/{episode_index}", dependencies=[Depends(verify_api_token)])
+def delete_episode(pack_hash: str, episode_index: int, worker: Worker = Depends(get_worker)):
+    with worker_lock:
+        pack = next((s for s in worker.state.get("seasons", []) if s["hash"].lower() == pack_hash.lower()), None)
+        if not pack:
+            raise HTTPException(status_code=404, detail="Раздача не найдена")
+        ep = next((e for e in pack.get("episodes", []) if e["index"] == episode_index), None)
+        if not ep:
+            raise HTTPException(status_code=404, detail="Серия не найдена")
+
+        try:
+            _, active = worker.j.snapshot()
+            if str(worker.dest(pack, ep)) in active:
+                raise HTTPException(status_code=409, detail="Серия сейчас воспроизводится в Jellyfin")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
+        ep["discarded"] = True
+        ep["seen_at"] = None
+
+        was_active = ep.get("published") or ep.get("selected") or worker.source(pack, ep).exists()
+        if was_active:
+            try:
+                worker.stop(pack)
+            except Exception:
+                pass
+            try:
+                worker.dest(pack, ep).unlink(missing_ok=True)
+                worker.source(pack, ep).unlink(missing_ok=True)
+            except Exception:
+                pass
+            ep["removed"] = True
+            ep["published"] = False
+            ep["selected"] = False
+            worker.refresh_needed = True
+            try:
+                files = worker.q.files(pack["hash"])
+                keep = {e["index"] for e in pack["episodes"] if e["selected"] and not finished(e)}
+                worker.q.priorities(pack["hash"], files, keep)
+                worker.q.post("recheck", hashes=pack["hash"])
+                pack["phase"] = "checking"
+            except Exception:
+                pass
+        else:
+            ep["removed"] = True
+            ep["published"] = False
+            ep["selected"] = False
+
+        worker.store.save()
+        return {"status": "deleted", "index": episode_index}
 
 
 # -----------------------------------------------------------------------------
