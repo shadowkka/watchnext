@@ -196,6 +196,20 @@ class ServerApiTest(unittest.TestCase):
         self.assertEqual(results[0]["seeders"], 120)
         self.assertIn("LostFilm", results[0]["voices"])
 
+    @patch("server.TVmaze")
+    def test_shows_search(self, mock_tvmaze_cls):
+        mock_instance = MagicMock()
+        mock_tvmaze_cls.return_value = mock_instance
+        mock_instance.find.return_value = [
+            {"id": 44933, "name": "Severance", "premiered": "2022-02-18", "status": "Running", "language": "English"}
+        ]
+        r = self.client.get("/api/shows/search?query=Severance")
+        self.assertEqual(r.status_code, 200)
+        shows = r.json()
+        self.assertEqual(len(shows), 1)
+        self.assertEqual(shows[0]["id"], 44933)
+        self.assertEqual(shows[0]["name"], "Severance")
+
     def test_subscriptions_crud(self):
         # Add subscription
         r = self.client.post("/api/subscriptions", json={

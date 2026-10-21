@@ -200,6 +200,15 @@ class AddSubscriptionRequest(BaseModel):
     title: str
     preferredQuality: str = "1080p"
     preferredVoice: str = "Любая"
+    tvmazeId: Optional[int] = None
+
+
+class ShowSearchResultDto(BaseModel):
+    id: int
+    name: str
+    premiered: Optional[str] = ""
+    status: Optional[str] = ""
+    language: Optional[str] = ""
 
 
 class ResolveTorrentRequest(BaseModel):
@@ -766,7 +775,8 @@ def search_torrents(
     pack_kind = "movie" if kind.lower() == "movie" else "series"
 
     try:
-        raw_res = worker.jackett.search(clean_query, pack_kind)
+        jackett = getattr(worker, "jackett", None) or Jackett()
+        raw_res = jackett.search(clean_query, pack_kind)
         items = raw_res.get("results", [])
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Ошибка поиска Jackett: {exc}")
@@ -818,7 +828,8 @@ def search_torrents(
 @app.post("/api/search/resolve", dependencies=[Depends(verify_api_token)])
 def resolve_torrent(body: ResolveTorrentRequest, worker: Worker = Depends(get_worker)):
     try:
-        magnet, torrent_bytes = worker.jackett.resolve({"link": body.link})
+        jackett = getattr(worker, "jackett", None) or Jackett()
+        magnet, torrent_bytes = jackett.resolve({"link": body.link})
         return {"magnet": magnet}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -876,16 +887,43 @@ def list_subscriptions(worker: Worker = Depends(get_worker)):
         return results
 
 
+@app.get("/api/shows/search", response_model=List[ShowSearchResultDto], dependencies=[Depends(verify_api_token)])
+def search_shows(query: str = Query(..., min_length=1), worker: Worker = Depends(get_worker)):
+    try:
+        shows = TVmaze().find(query.strip(), jellyfin=worker.j)
+        return [
+            ShowSearchResultDto(
+                id=s["id"],
+                name=s["name"],
+                premiered=s.get("premiered") or "",
+                status=s.get("status") or "",
+                language=s.get("language") or "",
+            )
+            for s in shows
+        ]
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Ошибка поиска TVmaze: {exc}")
+
+
 @app.post("/api/subscriptions", dependencies=[Depends(verify_api_token)])
 def add_subscription(body: AddSubscriptionRequest, worker: Worker = Depends(get_worker)):
     with worker_lock:
         show_obj = None
-        try:
-            shows = TVmaze().find(body.title, jellyfin=worker.j)
-            if shows:
-                show_obj = shows[0]
-        except Exception:
-            pass
+        if body.tvmazeId:
+            try:
+                raw_show = TVmaze().get(f"/shows/{body.tvmazeId}")
+                if isinstance(raw_show, dict) and raw_show.get("id"):
+                    show_obj = TVmaze.show(raw_show)
+            except Exception:
+                pass
+
+        if not show_obj:
+            try:
+                shows = TVmaze().find(body.title, jellyfin=worker.j)
+                if shows:
+                    show_obj = shows[0]
+            except Exception:
+                pass
 
         if not show_obj:
             show_obj = {
