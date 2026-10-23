@@ -228,9 +228,11 @@ class Worker(MenuUI):
             skip = (e['season'], e.get('end_number', e['number'])) < point
             e['skipped_start'] = skip
             if skip and not old and not e['watched'] and not e.get('discarded'):
+                e['discarded'] = True
                 e['removed'] = not (e['selected'] or e['published'] or self.source(pack, e).exists())
-            elif old and not skip and not e['watched'] and not e.get('discarded'):
+            elif old and not skip and not e['watched']:
                 e['removed'], e['selected'], e['published'] = False, False, False
+                e.pop('discarded', None)
         pack['season'], pack['start_episode'] = season, number
         pack['auto_season'] = False
         pack.pop('error', None)

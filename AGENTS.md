@@ -57,3 +57,9 @@ docker compose config --quiet
 - Не запускай второй Telegram poller с живым токеном для проверки установщика.
 - Изменения установщика проверяй на отдельном Docker project с другими портами и отдельной папкой, не на рабочей установке.
 - Не добавляй cron задания или автоматизации Codex: подписки исполняет сам worker.
+
+## Web и REST API
+
+`server.py` запускает REST API и единственный worker (Telegram опционален). `integrations.py` хранит приватные настройки Telegram в state/integrations.json. `web/` содержит Node gateway, подборки, TMDB и адаптивный интерфейс; web-data/integrations.json хранит токен TMDB и публичный URL Jellyfin. Не добавляйте эти JSON-файлы в Git/архив исходников.
+
+Проверки: `python3 -m unittest discover -s tests -q`, `python3 -m unittest test_server -q`, `cd web && npm test && npm run check`.

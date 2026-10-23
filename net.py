@@ -130,7 +130,7 @@ class Qbit:
 class Jellyfin:
     def __init__(self):
         self.http = HTTP(os.environ.get('JELLYFIN_URL', 'http://jellyfin:8096'),
-                         {'Authorization': 'MediaBrowser Token="' + os.environ['JELLYFIN_API_KEY'] + '"', 'Accept':'application/json; profile=PascalCase'})
+                         {'Accept': 'application/json; profile=PascalCase', 'Authorization': 'MediaBrowser Token="' + os.environ['JELLYFIN_API_KEY'] + '"'})
 
     def snapshot(self):
         users = self.http.call('/Users')
@@ -172,11 +172,11 @@ class Jellyfin:
 
 
 class Telegram:
-    def __init__(self):
-        self.owner = int(os.environ['TELEGRAM_OWNER_ID'])
+    def __init__(self, token=None, owner=None):
+        self.owner = int(owner if owner is not None else os.environ['TELEGRAM_OWNER_ID'])
         if self.owner <= 0:
             raise ValueError('TELEGRAM_OWNER_ID должен быть ID личного аккаунта.')
-        self.http = HTTP('https://api.telegram.org/bot' + os.environ['TELEGRAM_BOT_TOKEN'])
+        self.http = HTTP('https://api.telegram.org/bot' + (token if token is not None else os.environ['TELEGRAM_BOT_TOKEN']))
         self._bot_username = None
 
     @property

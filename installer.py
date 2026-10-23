@@ -260,8 +260,8 @@ def setup_telegram(env):
 
 
 def folders(root,env):
-    for name in ('config/jackett','config/qbittorrent','config/jellyfin','cache/jellyfin','state'):(Path(root)/name).mkdir(parents=True,exist_ok=True)
-    for name in ('config','state'):(Path(root)/name).chmod(0o700)
+    for name in ('config/jackett','config/qbittorrent','config/jellyfin','cache/jellyfin','state','web-data'):(Path(root)/name).mkdir(parents=True,exist_ok=True)
+    for name in ('config','state','web-data'):(Path(root)/name).chmod(0o700)
     data=Path(env['DATA_DIR']).expanduser().resolve()
     for name in ('downloads','library','movies'):(data/name).mkdir(parents=True,exist_ok=True)
     env['DATA_DIR']=str(data)
@@ -293,15 +293,15 @@ def main():
     if values.get('COMPOSE_PROJECT_NAME') and values['COMPOSE_PROJECT_NAME']!='watchnext':
         raise InstallError('Этот каталог использует другой Docker-проект. Для новой установки распакуй WatchNext в отдельную папку.')
     if not values:
-        print('WatchNext — установка домашнего кинотеатра и Telegram-бота.\nНужен отдельный бот от @BotFather. Настройка сохраняется, её можно продолжить после ошибки.')
+        print('WatchNext — установка домашнего кинотеатра и Telegram-бота.\nВеб-интерфейс установится вместе с сервером. Telegram можно подключить позднее в настройках. Настройка сохраняется, её можно продолжить после ошибки.')
         values=read_env(ROOT/'.env.example')
         address=ask('IP мини-ПК в домашней сети',guessed_ip());ipaddress.IPv4Address(address)
         if address=='0.0.0.0':raise InstallError('Укажи адрес домашнего интерфейса, не 0.0.0.0.')
         values.update(BIND_IP=address,PUID=str(os.getuid()),PGID=str(os.getgid()))
         values['DATA_DIR']=ask('Папка для видео',str(ROOT/'data'))
-        for key,label,default in [('QBIT_PORT','qBittorrent',8080),('JELLYFIN_PORT','Jellyfin',8096),('JACKETT_PORT','Jackett',9117),('TORRENT_PORT','BitTorrent',6881)]:
+        for key,label,default in [('QBIT_PORT','qBittorrent',8080),('JELLYFIN_PORT','Jellyfin',8096),('JACKETT_PORT','Jackett',9117),('TORRENT_PORT','BitTorrent',6881),('SERVER_PORT','WatchNext API',8000),('WEB_PORT','WatchNext Web',8787)]:
             values[key]=require_port(ask('Порт '+label,default))
-        check_ports(address,[values[k] for k in ('QBIT_PORT','JELLYFIN_PORT','JACKETT_PORT','TORRENT_PORT')])
+        check_ports(address,[values[k] for k in ('QBIT_PORT','JELLYFIN_PORT','JACKETT_PORT','TORRENT_PORT','SERVER_PORT','WEB_PORT')])
         values['JELLYFIN_USERNAME']=ask('Общий профиль Jellyfin','viewer')
         values['JELLYFIN_SETUP_PASSWORD']=password('Пароль Jellyfin для телевизора',''.join(secrets.choice('0123456789') for _ in range(8)))
         values['QBIT_PASSWORD']=password('Пароль администратора qBittorrent',secrets.token_urlsafe(18))
@@ -310,7 +310,7 @@ def main():
     else:print('Продолжаю установку. Существующие пароли, библиотеки и очередь сохраняются.')
     if not values.get('JELLYFIN_SETUP_PASSWORD'):raise InstallError('Для продолжения укажи JELLYFIN_SETUP_PASSWORD в .env. Чужая установка не изменена.')
     folders(ROOT,values)
-    setup_telegram(values);save_env(path,values)
+    save_env(path,values)
     # No polling worker may compete with the setup conversation.
     docker.compose('stop','queue')
     print('Запускаю сервисы. Первая загрузка образов может занять несколько минут.')
@@ -330,12 +330,9 @@ def main():
     initial_state(ROOT,settings)
     access='Jellyfin: '+endpoint(values,'JELLYFIN_PORT',8096)+'\nЛогин: '+values['JELLYFIN_USERNAME']+'\nПароль: '+values['JELLYFIN_SETUP_PASSWORD']+'\n\nqBittorrent: '+endpoint(values,'QBIT_PORT',8080)+'\nЛогин: '+values['QBIT_USERNAME']+'\nПароль: '+values['QBIT_PASSWORD']+'\n'
     private_write(ROOT/'access.txt',access)
-    docker.compose('up','-d','--build','queue')
-    from ui import COMMANDS
-    t=HTTP('https://api.telegram.org/bot'+values['TELEGRAM_BOT_TOKEN'])
-    t.call('/setMyCommands',data={'commands':json.dumps([{'command':c,'description':d} for c,d in COMMANDS],ensure_ascii=False)})
+    docker.compose('up','-d','--build','queue','web')
     private_write(ROOT/'state/installation-complete.json',json.dumps({'version':1,'completed':int(time.time())}))
-    print('\nГотово! Отправь боту /menu.\nJellyfin: '+endpoint(values,'JELLYFIN_PORT',8096)+'\nJackett: '+endpoint(values,'JACKETT_PORT',9117)+'/UI/Dashboard\nПароли: '+str(ROOT/'access.txt')+' (доступ только владельцу).\nRuTracker добавляется в панели Jackett; пароль от трекера вводится только там.\nСемейный доступ: /invite. Подписки: /subscriptions.')
+    print('\nГотово! WatchNext: '+endpoint(values,'WEB_PORT',8787)+'\nТокены TMDB и Telegram настраиваются в веб-интерфейсе.\nJellyfin: '+endpoint(values,'JELLYFIN_PORT',8096)+'\nJackett: '+endpoint(values,'JACKETT_PORT',9117)+'/UI/Dashboard\nПароли: '+str(ROOT/'access.txt')+' (доступ только владельцу).\nRuTracker добавляется в панели Jackett; пароль от трекера вводится только там.\nСемейный доступ: /invite. Подписки: /subscriptions.')
 
 
 if __name__=='__main__':

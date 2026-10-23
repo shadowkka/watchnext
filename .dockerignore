@@ -11,3 +11,7 @@
 !torrent_meta.py
 
 !subscriptions.py
+
+!server.py
+!integrations.py
+!requirements.txt
