@@ -439,24 +439,30 @@ def trigger_tick(worker: Worker = Depends(get_worker)):
 
 @app.post("/api/limits", dependencies=[Depends(verify_api_token)])
 def update_limits(body: UpdateLimitsRequest, worker: Worker = Depends(get_worker)):
+    # Validate the entire patch before changing memory or durable state.
+    import math
+    updates = {}
+    fields = body.model_fields_set
+    if "episodeCountLimit" in fields:
+        if body.episodeCountLimit is not None and not 1 <= body.episodeCountLimit <= 1000:
+            raise HTTPException(400, "Количество серий должно быть от 1 до 1000")
+        updates["count"] = body.episodeCountLimit
+    if "capGb" in fields:
+        if body.capGb is not None and not math.isfinite(body.capGb):
+            raise HTTPException(400, "Лимит должен быть конечным числом")
+        updates["cap"] = int(body.capGb * GB) if body.capGb is not None and body.capGb > 0 else None
+    if "reserveGb" in fields:
+        if body.reserveGb is None or not math.isfinite(body.reserveGb) or body.reserveGb < 0:
+            raise HTTPException(400, "Резерв должен быть неотрицательным числом")
+        updates["reserve"] = int(body.reserveGb * GB)
     with worker_lock:
-        if body.episodeCountLimit is not None:
-            if not 1 <= body.episodeCountLimit <= 1000:
-                raise HTTPException(status_code=400, detail="Количество серий должно быть от 1 до 1000")
-            worker.state["count"] = body.episodeCountLimit
-
-        if body.capGb is not None:
-            if body.capGb <= 0:
-                worker.state["cap"] = None
-            else:
-                worker.state["cap"] = int(body.capGb * GB)
-
-        if body.reserveGb is not None:
-            if body.reserveGb < 0:
-                raise HTTPException(status_code=400, detail="Резерв должен быть неотрицательным числом")
-            worker.state["reserve"] = int(body.reserveGb * GB)
-
-        worker.store.save()
+        previous = {key: worker.state.get(key) for key in updates}
+        worker.state.update(updates)
+        try:
+            worker.store.save()
+        except Exception:
+            worker.state.update(previous)
+            raise
     return {"status": "updated"}
 
 

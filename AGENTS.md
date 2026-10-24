@@ -65,3 +65,5 @@ docker compose config --quiet
 Проверки: `python3 -m unittest discover -s tests -q`, `python3 -m unittest test_server -q`, `cd web && npm test && npm run check`.
 
 `catalog_ui.py` — меню Telegram для общего веб-каталога, `catalog_client.py` — внутренний HTTP-адаптер и разбор импорта. Проверки: `tests/test_catalog.py`. Каталог не дублировать на Python; использовать общие API Node, чтобы настройки TMDB и просмотренное совпадали. Тесты Telegram используют fake-транспорт; не отправлять пользователям тестовые сообщения. Изолированная проверка каталога не должна иметь токена Telegram или доступа к живой очереди.
+
+`android/` — компактная WebView-оболочка общего веб-интерфейса. Не дублировать функции каталога/очереди на Kotlin. Сохранять applicationId, подпись APK и данные WebView при обновлении; ключи подписания не включать в Git. Проверки: `cd android && ./gradlew :app:assembleDebug :app:testDebugUnitTest`. Лимиты очереди всегда брать с сервера; локальные значения другого клиента не должны перезаписывать их при сохранении подключения.

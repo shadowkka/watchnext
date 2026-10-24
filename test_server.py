@@ -110,6 +110,26 @@ class ServerApiTest(unittest.TestCase):
         self.assertEqual(data["capGb"], 50.0)
         self.assertEqual(data["reserveGb"], 10.0)
 
+    def test_clear_cap_and_persist_across_worker_restart(self):
+        self.client.post("/api/limits", json={"episodeCountLimit": 12, "capGb": 80, "reserveGb": 18})
+        r = self.client.post("/api/limits", json={"capGb": None})
+        self.assertEqual(r.status_code, 200)
+        # Restart uses the same durable state, as an image update does.
+        restarted = Store(str(self.state_file))
+        self.assertEqual(restarted.data["count"], 12)
+        self.assertEqual(restarted.data["reserve"], 18 * GB)
+        self.assertIsNone(restarted.data["cap"])
+        self.client.post("/api/limits", json={"reserveGb": 20})
+        self.assertIsNone(self.worker.state["cap"])
+
+    def test_invalid_limit_patch_is_atomic(self):
+        before = copy.deepcopy(self.worker.state)
+        disk = self.state_file.read_bytes() if self.state_file.exists() else None
+        r = self.client.post("/api/limits", json={"episodeCountLimit": 12, "reserveGb": -1})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.worker.state, before)
+        self.assertEqual(self.state_file.read_bytes() if self.state_file.exists() else None, disk)
+
     def test_pack_crud(self):
         # 1. Add pack
         add_payload = {

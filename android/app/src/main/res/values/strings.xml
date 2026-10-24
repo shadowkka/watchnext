@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">WatchNext</string>
+    <string name="nav_dashboard">Очередь</string>
+    <string name="nav_search">Поиск</string>
+    <string name="nav_add">Магнет</string>
+    <string name="nav_subscriptions">Подписки</string>
+    <string name="nav_settings">Настройки</string>
+
+    <string name="dashboard_title">Медиа-очередь</string>
+    <string name="search_title">Поиск торрентов</string>
+    <string name="add_magnet_title">Добавить раздачу</string>
+    <string name="subscriptions_title">Подписки на серии</string>
+    <string name="settings_title">Параметры и сервер</string>
+
+    <string name="btn_pause">Пауза</string>
+    <string name="btn_resume">Продолжить</string>
+    <string name="btn_refresh">Обновить</string>
+    <string name="btn_search">Найти</string>
+    <string name="btn_add">Добавить</string>
+    <string name="btn_save">Сохранить</string>
+    <string name="btn_cancel">Отмена</string>
+    <string name="btn_retry">Повторить</string>
+
+    <string name="status_downloading">Скачивание</string>
+    <string name="status_paused">На паузе</string>
+    <string name="status_ready">Готово</string>
+    <string name="status_checking">Проверка</string>
+    <string name="status_metadata">Получение метаданных</string>
+    <string name="status_waiting">Ожидает места / лимита</string>
+</resources>
