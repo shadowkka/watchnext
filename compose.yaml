@@ -40,7 +40,10 @@ services:
     restart: unless-stopped
   flaresolverr:
     dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
-    networks: [default, search_dns]
+    networks:
+      default: {}
+      search_dns:
+        ipv4_address: ${SEARCH_FLARESOLVERR_IP:-172.30.53.4}
     depends_on: [dnsproxy]
     image: ghcr.io/flaresolverr/flaresolverr@sha256:c80ae007ce2ccdcd217a12426e4f039ef763ff90738c808d38810c3e59323767
     environment:
@@ -54,7 +57,10 @@ services:
     restart: unless-stopped
   jackett:
     dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
-    networks: [default, search_dns]
+    networks:
+      default: {}
+      search_dns:
+        ipv4_address: ${SEARCH_JACKETT_IP:-172.30.53.3}
     depends_on: [dnsproxy]
     image: lscr.io/linuxserver/jackett@sha256:5e0a9785ee4edeb30a4644391d94b4ce2ba233caf2fc82915ef215ef00efc0d5
     environment:
