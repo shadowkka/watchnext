@@ -200,6 +200,14 @@ class BotCatalog(unittest.TestCase):
         self.search_pool.calls[0][0].set_exception(APIError('offline'));self.w.search_poll()
         self.assertEqual(len(self.tg.messages),before)
 
+    def test_already_completed_search_sends_only_one_result_update(self):
+        self.w.search_start(123,'Show');s=self.w.state['searches']['123'];s['kind']='series';self.w.search_run(123,s['id'])
+        result={'results':[row(0)],'warnings':[]}
+        self.w._search_events.put((123,s['id'],s['generation'],result))
+        self.search_pool.calls[0][0].set_result(result)
+        before=len(self.tg.messages);self.w.search_poll()
+        self.assertEqual(len(self.tg.messages)-before,1);self.assertFalse(s['running'])
+
 
 
 class HistoryAndTransport(unittest.TestCase):

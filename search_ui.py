@@ -348,7 +348,8 @@ class SearchUI:
             if uid not in self.users or not s or s['id']!=sid or not s.get('running') or s.get('generation',0)!=generation:continue
             self.search_merge(s,result)
             if s['phase']=='working' and s.get('results'):s['phase']='ready'
-            if s['phase']=='ready' and s.get('displayed'):
+            future=self.search_jobs().get((uid,sid,'query'))
+            if s['phase']=='ready' and s.get('displayed') and not (future and future.done()):
                 old=getattr(self,'_ui_message',None);self._ui_message=s.get('message_id')
                 try:self.search_page(uid,sid,s.get('page',0))
                 except APIError:pass
