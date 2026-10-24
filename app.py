@@ -228,9 +228,11 @@ class Worker(MenuUI):
             skip = (e['season'], e.get('end_number', e['number'])) < point
             e['skipped_start'] = skip
             if skip and not old and not e['watched'] and not e.get('discarded'):
+                e['discarded'] = True
                 e['removed'] = not (e['selected'] or e['published'] or self.source(pack, e).exists())
-            elif old and not skip and not e['watched'] and not e.get('discarded'):
+            elif old and not skip and not e['watched']:
                 e['removed'], e['selected'], e['published'] = False, False, False
+                e.pop('discarded', None)
         pack['season'], pack['start_episode'] = season, number
         pack['auto_season'] = False
         pack.pop('error', None)
@@ -357,15 +359,34 @@ class Worker(MenuUI):
         if uid is None:
             return
         text = message.get('text', '').strip()
+        if text.startswith('/') or text=='Отмена':
+            pending_catalog=self.state.get('catalogs',{}).get(str(uid))
+            if pending_catalog and pending_catalog.get('phase')=='working':pending_catalog.update(nonce='',phase='idle')
+            pending_search=self.state.get('searches',{}).get(str(uid))
+            if pending_search:pending_search['displayed']=False
         start = text.split()
         if len(start) == 2 and start[0].split('@')[0] == '/start' and start[1].startswith('join_'):
             self.accept_invite(uid, start[1][5:], message.get('from', {}))
             return
         if uid not in self.users:
             return
+        if message.get('document'):
+            self.catalog_document(uid,message['document'])
+            return
+        command_name=text.split(maxsplit=1)[0].split('@')[0] if text else ''
+        if command_name in ('/discover','/random','/person','/watched'):
+            self.catalog_home(uid,'random' if command_name=='/random' else 'home')
+            session=self.state['catalogs'][str(uid)]
+            if command_name=='/person':
+                query=text.split(maxsplit=1)[1] if len(text.split(maxsplit=1))>1 else ''
+                if query:self.catalog_load(uid,session['id'],'people',query)
+                else:self.catalog_prompt(uid,session['id'],'person')
+            elif command_name=='/watched':self.catalog_load(uid,session['id'],'history','')
+            return
         if text in ('/cancel', 'Отмена'):
             self.state.setdefault('follow_dialogs',{}).pop(str(uid),None)
             self.state.get('searches', {}).pop(str(uid), None)
+            self.state.get('catalogs',{}).pop(str(uid),None)
             self.state.setdefault('dialogs', {}).pop(str(uid), None)
             self.state.setdefault('ui_input', {}).pop(str(uid), None)
             self.store.save()
@@ -765,7 +786,7 @@ def main():
     while True:
         try:
             worker.q.login()
-            for update in worker.tg.updates(worker.state['offset']):
+            for update in worker.tg.updates(worker.state['offset'], timeout=1 if worker.ui_jobs_pending() else 10):
                 message = update.get('message', {})
                 try:
                     if 'callback_query' in update:

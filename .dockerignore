@@ -11,3 +11,12 @@
 !torrent_meta.py
 
 !subscriptions.py
+
+!server.py
+!integrations.py
+!requirements.txt
+
+!release_search.py
+
+!catalog_client.py
+!catalog_ui.py

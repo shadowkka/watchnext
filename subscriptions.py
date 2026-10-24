@@ -106,8 +106,8 @@ def scan_subscription(sub):
             warning=', '.join(result['warnings'])
             for e in awaiting:
                 matches=[r for r in result['results'] if release_is_show(r['title'],sub) and release_matches(r['title'],e['season'],e['number'])
-                         and (not sub.get('quality') or resolution(r['title'])==sub['quality'])
-                         and (not sub.get('voice') or sub['voice'] in voice_tags(r['title']))
+                         and (not sub.get('quality') or sub['quality'] in ('Любое', 'any', '') or resolution(r['title'])==sub['quality'])
+                         and (not sub.get('voice') or sub['voice'] in ('Любая', 'any', '') or sub['voice'] in voice_tags(r['title']))
                          and r.get('seeders') is not None and r['seeders']>0]
                 # Preserve original release titles: selection still requires explicit confirmation.
                 e['choices']=matches[:5]

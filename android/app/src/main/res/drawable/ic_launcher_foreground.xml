@@ -1,0 +1,5 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Custom crescent/play mark, fully inside the adaptive icon safe zone. -->
+    <path android:fillColor="#A7B9DF" android:pathData="M72,26 C57,18 36,25 28,40 C18,58 27,79 45,85 C63,91 82,78 84,60 C78,76 61,81 47,73 C34,66 31,50 39,38 C46,28 61,24 72,26 Z" />
+    <path android:fillColor="#F1F3F7" android:pathData="M49,40 C49,38.7 50.4,38 51.5,38.7 L69,50.4 C70.2,51.2 70.2,52.8 69,53.6 L51.5,65.3 C50.4,66 49,65.3 49,64 Z" />
+</vector>
