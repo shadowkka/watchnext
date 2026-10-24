@@ -236,7 +236,7 @@ def background_worker_loop(worker: Worker):
             telegram = worker.tg
             if isinstance(telegram, Telegram) and telegram.owner > 0:
                 try:
-                    for update in telegram.updates(worker.state["offset"]):
+                    for update in telegram.updates(worker.state["offset"], timeout=1 if worker.ui_jobs_pending() else 10):
                         if telegram is not worker.tg:
                             break
                         message = update.get("message", {})

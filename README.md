@@ -4,6 +4,8 @@
 
 **Стек:** Ubuntu · Docker Compose · qBittorrent · Jellyfin · Jackett · Python/FastAPI · Node.js 22.
 
+В Telegram доступны `/discover` (персоны и подборки), `/random` (фильмы по фильтрам), `/person Имя` и `/watched`. Каталог, TMDB и просмотренное общие с вебом. [Подробности работы бота](docs/WEB.md#telegram-те-же-каталог-и-история).
+
 ## Как это выглядит
 
 1. В веб-интерфейсе или Telegram находишь фильм или сериал, выбираешь раздачу и начальную серию.

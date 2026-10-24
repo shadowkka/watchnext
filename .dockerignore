@@ -17,3 +17,6 @@
 !requirements.txt
 
 !release_search.py
+
+!catalog_client.py
+!catalog_ui.py

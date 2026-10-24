@@ -3,6 +3,7 @@ import http.cookiejar
 import json
 import os
 import secrets
+import re
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -176,7 +177,8 @@ class Telegram:
         self.owner = int(owner if owner is not None else os.environ['TELEGRAM_OWNER_ID'])
         if self.owner <= 0:
             raise ValueError('TELEGRAM_OWNER_ID должен быть ID личного аккаунта.')
-        self.http = HTTP('https://api.telegram.org/bot' + (token if token is not None else os.environ['TELEGRAM_BOT_TOKEN']))
+        self._token=token if token is not None else os.environ['TELEGRAM_BOT_TOKEN']
+        self.http = HTTP('https://api.telegram.org/bot' + self._token)
         self._bot_username = None
 
     @property
@@ -208,6 +210,35 @@ class Telegram:
     def answer(self, query_id, text='', alert=False):
         return self.call('answerCallbackQuery', callback_query_id=query_id, text=text, show_alert='true' if alert else 'false')
 
-    def updates(self, offset):
-        return self.call('getUpdates', offset=offset, timeout=10,
+    def updates(self, offset, timeout=10):
+        return self.call('getUpdates', offset=offset, timeout=timeout,
                          allowed_updates=json.dumps(['message', 'callback_query']))
+
+    def download_document(self, document):
+        item=self.call('getFile',file_id=document['file_id'])
+        file=item.get('file_path','')
+        if not file or not re.fullmatch(r'[A-Za-z0-9_./-]+',file) or '..' in file.split('/') or file.startswith('/'):
+            raise APIError('Telegram не дал допустимый путь файла.')
+        if item.get('file_size',0)>1024*1024:raise ValueError('Файл должен быть не больше 1 МБ.')
+        try:
+            with self.http.opener.open(Request('https://api.telegram.org/file/bot'+self._token+'/'+file),timeout=30) as response:
+                raw=response.read(1024*1024+1)
+        except (HTTPError,URLError,TimeoutError,OSError):raise APIError('Не удалось получить файл из Telegram.') from None
+        if len(raw)>1024*1024:raise ValueError('Файл должен быть не больше 1 МБ.')
+        return raw
+
+    def photo(self, image, caption, uid, markup):
+        if not isinstance(image,bytes) or len(image)>2*1024*1024:raise ValueError('Слишком большая обложка.')
+        boundary='WatchNext'+secrets.token_hex(16)
+        fields={'chat_id':str(uid),'caption':str(caption),'parse_mode':'HTML','reply_markup':json.dumps(markup,ensure_ascii=False)}
+        chunks=[]
+        for key,value in fields.items():
+            chunks.append(('--'+boundary+'\r\nContent-Disposition: form-data; name="'+key+'"\r\n\r\n'+value+'\r\n').encode())
+        chunks.append(('--'+boundary+'\r\nContent-Disposition: form-data; name="photo"; filename="poster.jpg"\r\nContent-Type: application/octet-stream\r\n\r\n').encode())
+        chunks += [image,('\r\n--'+boundary+'--\r\n').encode()]
+        try:
+            with self.http.opener.open(Request(self.http.base+'/sendPhoto',data=b''.join(chunks),headers={'Content-Type':'multipart/form-data; boundary='+boundary}),timeout=30) as response:
+                result=json.loads(response.read(1024*1024))
+        except (HTTPError,URLError,TimeoutError,OSError,ValueError):raise APIError('Telegram не принял обложку.') from None
+        if not result.get('ok'):raise APIError('Telegram не принял обложку.')
+        return result['result']['message_id']

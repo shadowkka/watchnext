@@ -8,9 +8,12 @@ from core import GB, episode_label, last_season, parse_start, episode_count
 from net import APIError, RichText
 from search_ui import SearchUI
 from subscriptions import SubscriptionUI
+from catalog_ui import CatalogUI
+from catalog_client import public_web_url
+from urllib.parse import urlsplit
 
 COMMANDS = [
-    ('search', 'Найти фильм или сериал'), ('subscriptions','Подписки на новые серии'), ('follow','Подписаться на сериал'), ('menu', 'Главное меню'), ('add', 'Magnet — добавить по ссылке'),
+    ('search', 'Найти фильм или сериал'), ('discover','Что посмотреть'), ('random','Случайные фильмы'), ('person','Актёр или режиссёр'), ('watched','Список просмотренного'), ('subscriptions','Подписки на новые серии'), ('follow','Подписаться на сериал'), ('menu', 'Главное меню'), ('add', 'Magnet — добавить по ссылке'),
     ('files', 'Раздачи и файлы'), ('status', 'Состояние очереди'),
     ('from', 'Выбрать начальную серию'), ('limit', 'Лимиты загрузки'),
     ('notify', 'Когда предлагать продолжение'), ('reserve', 'Резерв места на диске'),
@@ -21,8 +24,12 @@ COMMANDS = [
 ]
 
 
-class MenuUI(SearchUI, SubscriptionUI):
+class MenuUI(SearchUI, SubscriptionUI, CatalogUI):
     def ui_button(self, uid, label, *action):
+        if action and action[0]=='url':
+            parsed=urlsplit(action[1])
+            if parsed.scheme not in ('http','https') or not parsed.netloc or parsed.username or parsed.password:raise ValueError('Недопустимая ссылка')
+            return {'text':label[:100],'url':action[1]}
         tokens = self.state.setdefault('buttons', {})
         now = time.time()
         for key, item in list(tokens.items()):
@@ -41,6 +48,12 @@ class MenuUI(SearchUI, SubscriptionUI):
         if len(action)>1 and str(action[0]).startswith('follow_'):
             sub=self.state.get('subscriptions',{}).get(str(action[1]))
             if sub:item['subscription']=[str(action[1]),sub.get('generation')]
+        if len(action)>1 and str(action[0]).startswith('search_'):
+            session=self.state.get('searches',{}).get(str(uid))
+            if session and action[1]==session['id']:item['search']=[session['id'],session.get('generation',0)]
+        if len(action)>1 and str(action[0]).startswith('catalog_'):
+            session=self.state.get('catalogs',{}).get(str(uid))
+            if session and action[1]==session['id']:item['catalog']=[session['id'],session.get('revision',0)]
         tokens[key] = item
         return {'text': label[:100], 'callback_data': 'ui:' + key}
 
@@ -59,12 +72,17 @@ class MenuUI(SearchUI, SubscriptionUI):
         return self.tg.send(text, chat_id=uid, reply_markup=markup)
 
     def ui_home(self, uid, text=None):
+        pending=self.state.get('catalogs',{}).get(str(uid))
+        if pending and pending.get('phase')=='working':pending.update(nonce='',phase='idle')
+        search=self.state.get('searches',{}).get(str(uid))
+        if search:search['displayed']=False
         rows = [[('🧲 Magnet', 'command', '/add'), ('📂 Раздачи и файлы', 'packs', 'files', 0)],
                 [('📊 Очередь', 'status'), ('⚙️ Настройки', 'settings')],
                 [('▶️ Продолжить' if self.state['paused'] else '⏸ Пауза',
                   'command', '/resume' if self.state['paused'] else '/pause')]]
         rows.insert(0, [('🔎 Найти фильм или сериал', 'search_new')])
-        rows.insert(1,[('🔔 Подписки на сериалы','follow_list',0)])
+        rows.insert(1,[('🍿 Что посмотреть','catalog_home'),('🎲 Случайный','catalog_home','random')])
+        rows.insert(2,[('🔔 Подписки на сериалы','follow_list',0)])
         search = self.state.get('searches', {}).get(str(uid))
         if search and search.get('results') and search['expires'] > time.time():
             rows.append([('Результаты последнего поиска', 'search_page', search['id'], 0)])
@@ -111,9 +129,10 @@ class MenuUI(SearchUI, SubscriptionUI):
         self.ui_show(uid,RichText('\n'.join(lines)),rows)
 
     def ui_settings(self, uid):
-        self.ui_show(uid, '\n'.join(self.status().split('\n')[:2]), [
-            [('Лимит серий и ГБ', 'limit')], [('Поиск: качество и фильтры', 'search_options', '')], [('Когда предлагать следующий сезон', 'setting', 'notify')],
-            [('Резерв свободного места', 'setting', 'reserve')], self.ui_nav()])
+        rows=[[('Лимит серий и ГБ','limit')],[('Поиск: качество и фильтры','search_options','')],
+              [('Когда предлагать следующий сезон','setting','notify')],[('Резерв свободного места','setting','reserve')],self.ui_nav()]
+        if uid==self.tg.owner and public_web_url():rows.insert(0,[('🌐 TMDB, Telegram и адрес Jellyfin','url',public_web_url()+'/#settings')])
+        self.ui_show(uid,'\n'.join(self.status().split('\n')[:2]),rows)
 
     def ui_packs(self, uid, purpose='files', page=0):
         packs = self.ordered_seasons()
@@ -172,6 +191,11 @@ class MenuUI(SearchUI, SubscriptionUI):
         if not eps:
             lines.append('Список файлов ещё не получен.')
         rows, nav = [], []
+        published=[e for e in eps if e.get('published')]
+        if published:
+            rows.append([('▶️ Открыть '+('фильм' if p.get('kind')=='movie' else 'сериал')+' в Jellyfin','jellyfin',h)])
+            if p.get('kind')!='movie':
+                rows += [[('▶️ '+episode_label(e,p['season']),'jellyfin',h,e['index'])] for e in eps[page*8:page*8+8] if e.get('published')]
         if page:
             nav.append(('← Файлы', 'files', h, page - 1))
         if (page + 1) * 8 < len(eps):
@@ -245,6 +269,9 @@ class MenuUI(SearchUI, SubscriptionUI):
         self.ui_show(uid, prompt, rows)
 
     def ui_value(self, uid, kind, h, value):
+        if kind.startswith('catalog_'):
+            self.catalog_text(uid,kind,value)
+            return
         if kind=='follow_query':
             self.follow_begin(uid,value)
             return
@@ -326,6 +353,12 @@ class MenuUI(SearchUI, SubscriptionUI):
         return True
 
     def ui_action(self, uid, action, *args):
+        search=self.state.get('searches',{}).get(str(uid))
+        if search and action!='search_page':search['displayed']=False
+        if action.startswith('catalog_'):return self.catalog_action(uid,action,*args)
+        if action=='jellyfin':return self.catalog_jellyfin(uid,*args)
+        catalog=self.state.get('catalogs',{}).get(str(uid))
+        if catalog and catalog.get('phase')=='working':catalog.update(nonce='',phase='idle')
         if action.startswith('follow_'):
             if action=='follow_pack':
                 self.follow_begin(uid,self.ui_pack(args[0])['title'],library_title=self.ui_pack(args[0])['title'])
@@ -418,6 +451,7 @@ class MenuUI(SearchUI, SubscriptionUI):
                 self.state['members'].pop(target, None)
                 self.state.get('searches', {}).pop(target, None)
                 self.state.get('follow_dialogs',{}).pop(target,None)
+                self.state.get('catalogs',{}).pop(target,None)
                 self.state['buttons'] = {k: v for k, v in self.state.get('buttons', {}).items() if str(v['uid']) != target}
                 self.state.setdefault('dialogs', {}).pop(target, None)
                 self.state.setdefault('ui_input', {}).pop(target, None)
@@ -441,6 +475,13 @@ class MenuUI(SearchUI, SubscriptionUI):
             key,generation=item['subscription']
             sub=self.state.get('subscriptions',{}).get(key)
             valid=bool(sub) and sub.get('generation')==generation
+        for field,table,version in [('search','searches','generation'),('catalog','catalogs','revision')]:
+            if valid and not item.get(field) and len(item['action'])>1 and str(item['action'][0]).startswith(field+'_'):
+                session=self.state.get(table,{}).get(str(uid))
+                if session and item['action'][1]==session['id'] and session.get(version,0)>0:valid=False
+            if valid and item.get(field):
+                sid,revision=item[field];session=self.state.get(table,{}).get(str(uid))
+                valid=bool(session) and session['id']==sid and session.get(version,0)==revision
         try:
             self.tg.answer(query['id'], '' if valid else 'Кнопка устарела или недоступна. Открой /menu.', not valid)
         except APIError as exc:

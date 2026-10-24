@@ -316,7 +316,7 @@ class SearchMenus(fixtures.Lifecycle):
 
     def test_new_search_invalidates_old_result_buttons(self):
         self.search();token=self.buttons()[0]['callback_data'];self.search(query='New')
-        self.click(data=token);self.assertIn('устарели',self.tg.messages[-1]);self.assertEqual(len(self.store.data['seasons']),1)
+        self.click(data=token);self.assertTrue(self.tg.answers[-1][2]);self.assertIn('устарела',self.tg.answers[-1][1]);self.assertEqual(len(self.store.data['seasons']),1)
 
     def test_cancel_late_result_and_late_import_have_no_side_effects(self):
         self.command('/search Movie');self.click('Фильм');future=self.futures[-1]
