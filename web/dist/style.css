@@ -24,3 +24,5 @@
 @media(min-width:1450px){main{padding:48px 56px 28px}.cards{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.media-card{gap:16px;padding:18px}.cover{width:84px}}
 @media(max-width:600px){#header{flex-wrap:wrap;gap:12px}.header-actions{margin-left:auto}.jellyfin-home{min-height:38px;padding:8px 10px;font-size:12px}.integration-actions>*{flex:1}.integration-layout{margin-top:16px}.episode-main{gap:8px}.episode-main>.status{font-size:11px}.episode-main>.icon-btn{width:32px}}
 @media(min-width:1000px){.settings-layout{max-width:none}.discover-cards,.filmography-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.discover-card,.explore-movie{margin:0;min-width:0}.discover-card{display:flex;flex-direction:column}.discover-card-actions,.explore-movie-actions{margin-top:auto;padding-top:18px}.discover-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.person-search{max-width:720px}.collection-filter-panel{padding:22px}.collection-tools{gap:18px}}
+
+.search-progress{color:var(--muted);font-size:12px;margin:8px 0 18px;line-height:1.6}

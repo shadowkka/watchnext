@@ -15,3 +15,5 @@
 !server.py
 !integrations.py
 !requirements.txt
+
+!release_search.py

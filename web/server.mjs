@@ -10,7 +10,7 @@ import {createIntegrations} from './integrations.mjs';
 import {createTMDB} from './tmdb.mjs';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'dist');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
-const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/link|search(?:\/resolve)?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
+const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/link|search(?:\/(?:resolve|start|jobs\/[a-f0-9]{32}))?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
 export function createGateway({base=process.env.API_BASE||'',token=process.env.API_TOKEN||'',certificate=process.env.TLS_CERT,key=process.env.TLS_KEY,pickerDataDir=process.env.PICKER_DATA_DIR,settingsFile=process.env.WEB_SETTINGS_FILE}={}){
  const target=base?normalizeServer(base):'';let picker,explore;const integrations=createIntegrations({file:settingsFile});const tmdb=createTMDB({token:integrations.token});
  const handler=async(req,res)=>{

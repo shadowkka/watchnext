@@ -188,6 +188,26 @@ class ServerApiTest(unittest.TestCase):
         r = self.client.delete(f"/api/packs/{H1}/episodes/99")
         self.assertEqual(r.status_code, 404)
 
+    def test_progressive_search_serializes_partial_results_and_enforces_auth(self):
+        identifier = 'a' * 32
+        snapshot = {'id':identifier,'kind':'series','done':False,'changed':True,'revision':1,
+                    'completed':1,'total':2,'error':'','warnings':[],
+                    'results':[{'title':'Show S02E01 1080p','tracker':'Fast','size':100,'seeders':5,
+                                'magnet':MAGNET1,'link':'','quality':'1080p'}]}
+        with patch.object(server.release_searches,'start',return_value=identifier), patch.object(server.release_searches,'snapshot',return_value=snapshot):
+            response = self.client.post('/api/search/start',json={'query':'Show','kind':'series'})
+            self.assertEqual(response.status_code,200)
+            self.assertFalse(response.json()['done'])
+            self.assertEqual(response.json()['results'][0]['detectedSeason'],2)
+            self.assertEqual(response.json()['results'][0]['detectedKind'],'SERIES')
+        with patch.object(server.release_searches,'snapshot',return_value={'id':identifier,'kind':'series','done':False,'changed':False,'revision':1,'completed':1,'total':2,'error':''}) as get:
+            response = self.client.get('/api/search/jobs/'+identifier+'?after=1')
+            self.assertNotIn('results',response.json())
+            get.assert_called_once_with(identifier,1)
+        with patch.object(server,'API_TOKEN','fixture-token'):
+            self.assertEqual(self.client.post('/api/search/start',json={'query':'Show'}).status_code,401)
+            self.assertEqual(self.client.get('/api/search/jobs/'+identifier).status_code,401)
+
     def test_search(self):
         r = self.client.get("/api/search?query=Dragon&kind=series&minSeeders=50")
         self.assertEqual(r.status_code, 200)

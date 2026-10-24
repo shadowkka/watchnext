@@ -169,7 +169,7 @@ class Jackett:
             raise ValueError('Для поиска подключено больше 16 трекеров. Сократи список в Jackett.')
         return ids
 
-    def search(self, query, kind):
+    def search(self, query, kind, on_update=None):
         ids = self.indexers()
         payload = {'Results':[], 'Indexers':[]}
         if ids:
@@ -177,6 +177,7 @@ class Jackett:
             with ThreadPoolExecutor(max_workers=min(4,len(ids)), thread_name_prefix='indexer') as pool:
                 pending = {pool.submit(self.request, '/api/v2.0/indexers/'+i+'/results',
                                        {'apikey':self.key,'Query':query}):i for i in ids}
+                completed = 0
                 for future in as_completed(pending):
                     i = pending[future]
                     try:
@@ -187,6 +188,13 @@ class Jackett:
                         payload['Indexers'].extend(page['Indexers'])
                     except (APIError, ValueError, KeyError, TypeError, UnicodeError, OSError):
                         payload['Indexers'].append({'Name':i,'Status':1})
+                    completed += 1
+                    if on_update is not None:
+                        try:
+                            partial = self.normalize(payload, kind)
+                        except APIError:
+                            partial = {'results':[], 'warnings':[plain(x.get('Name','трекер'),60) for x in payload['Indexers']]}
+                        on_update(partial, completed, len(ids))
         return self.normalize(payload, kind)
 
     def normalize(self, payload, kind):

@@ -26,6 +26,8 @@ from integrations import load_settings, save_settings, telegram_config, public_s
 import re
 from search_client import Jackett, plain, quality, release_numbers, voices
 from subscriptions import TVmaze
+from release_search import SearchJobs
+release_searches = SearchJobs()
 
 LOG = logging.getLogger("watchnext-server")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -883,6 +885,11 @@ def search_torrents(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Ошибка поиска Jackett: {exc}")
 
+    return serialize_search(raw_res, pack_kind, minSeeders, voiceFilter, qualityFilter)
+
+
+def serialize_search(raw_res, pack_kind, minSeeders=0, voiceFilter=None, qualityFilter=None):
+    items = raw_res.get("results", [])
     results = []
     for item in items:
         title = item.get("title", "")
@@ -925,6 +932,40 @@ def search_torrents(
         )
 
     return results
+
+
+class StartSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=120)
+    kind: str = "series"
+
+
+def search_snapshot(identifier, after=-1):
+    try:
+        result = release_searches.snapshot(identifier, after)
+    except KeyError:
+        raise HTTPException(404, "Поиск истёк. Повторите запрос.") from None
+    if 'results' in result:
+        result['results'] = serialize_search({'results':result['results']}, result['kind'])
+    return result
+
+
+@app.post("/api/search/start", dependencies=[Depends(verify_api_token)])
+def start_search(body: StartSearchRequest, worker: Worker = Depends(get_worker)):
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(400, "Введите название")
+    kind = "movie" if body.kind.lower() == "movie" else "series"
+    client = getattr(worker, "jackett", None) or Jackett()
+    try:
+        identifier = release_searches.start(query, kind, client)
+    except ValueError as exc:
+        raise HTTPException(429, str(exc)) from None
+    return search_snapshot(identifier)
+
+
+@app.get("/api/search/jobs/{identifier}", dependencies=[Depends(verify_api_token)])
+def get_search(identifier: str, after: int = -1):
+    return search_snapshot(identifier, after)
 
 
 @app.post("/api/search/resolve", dependencies=[Depends(verify_api_token)])
