@@ -1,0 +1,12 @@
+import {escapeHTML as e} from './core.js';
+export function createWishlistUI({request,onSearch,toast}){
+ let movies=[],error='',loading=false;
+ const host=()=>document.querySelector('#wishlist');
+ function contents(){return `${error?`<p role="alert">${e(error)}</p><button class="secondary small" data-wish="reload">Повторить</button>`:''}${loading&&!movies.length?'<p class="help">Загружаем список…</p>':movies.length?movies.map(m=>`<article class="wishlist-row"><div><h3>${e(m.title)}</h3><p class="meta">${m.kind==='series'?'Сериал':'Фильм'}${m.year?' · '+e(m.year):''}</p></div><div class="wishlist-actions"><button class="secondary small" data-wish="search" data-id="${e(m.id)}">Найти раздачи</button><button class="secondary outline small" data-wish="remove" data-id="${e(m.id)}" aria-label="Убрать ${e(m.title)} из списка">Убрать</button></div></article>`).join(''):'<p class="help">Сохраняйте фильмы и сериалы из поиска и подборок — они появятся здесь.</p>'}`;}
+ function html(){return `<details id="wishlist" class="discover-history"><summary>Хочу посмотреть${movies.length?' · '+movies.length:''}</summary><div class="wishlist-content">${contents()}</div></details>`;}
+ function update(){const el=host();if(!el)return;el.querySelector('summary').textContent='Хочу посмотреть'+(movies.length?' · '+movies.length:'');el.querySelector('.wishlist-content').innerHTML=contents();}
+ async function load(){loading=true;error='';update();try{movies=(await request('/api/wishlist')).movies;}catch(err){error=err.message;}finally{loading=false;update();}}
+ async function add(movie,button){if(button?.disabled)return;const old=button?.textContent;if(button)button.disabled=true;try{movies=(await request('/api/wishlist',{method:'POST',body:{movie}})).movies;error='';update();if(button)button.textContent='✓ В списке';toast('Добавлено в «Хочу посмотреть»');}catch(err){toast(err.message);if(button)button.textContent=old;}finally{if(button)button.disabled=false;}}
+ function mount(){const el=host();if(!el)return;el.addEventListener('toggle',()=>{if(el.open)load();});el.addEventListener('click',async event=>{const b=event.target.closest('[data-wish]');if(!b)return;const m=movies.find(x=>x.id===b.dataset.id);if(b.dataset.wish==='reload')return load();if(!m)return;if(b.dataset.wish==='search')return onSearch(m);if(b.dataset.wish==='remove'){b.disabled=true;try{movies=(await request('/api/wishlist',{method:'POST',body:{remove:m.id}})).movies;update();toast('Убрано из «Хочу посмотреть»');}catch(err){error=err.message;update();}}});}
+ return {html,mount,add};
+}
