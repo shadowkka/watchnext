@@ -337,3 +337,6 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 .pack-card-heading .pack-card-status {margin:3px 0 0;flex:0 1 auto;max-width:45%;font-size:11px;}
 .pack-card-status .status {font-size:11px;white-space:normal;text-align:right;margin-top:0;}
 .storage-reserve {display:block;color:var(--muted);font-size:11px;margin-top:7px;}
+
+.settings-body.settings-rows {margin-top:10px;padding-top:0;}
+.settings-body.settings-rows>.setting-row {margin-top:0;}
