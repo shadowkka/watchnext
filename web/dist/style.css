@@ -174,11 +174,16 @@ h3{
   min-height:100dvh;
   max-width:1500px;
   margin:auto;
+  display:grid;
+  grid-template-columns:238px minmax(0,1fr);
 }
 .rail{
-  position:fixed;
+  position:sticky;
   top:0;
-  bottom:0;
+  align-self:start;
+  height:100vh;
+  height:100dvh;
+  overflow-y:auto;
   width:238px;
   padding:34px 24px;
   border-right:1px solid var(--line);
@@ -186,22 +191,7 @@ h3{
   flex-direction:column;
   background:var(--bg-1);
 }
-/* On ultra-wide screens the fixed rail stays glued to the window edge
-   while the centered .app column drifts right. Grid keeps the rail
-   attached to the content column; sticky preserves the fixed feel. */
-.app:has(>.rail){
-  display:grid;
-  grid-template-columns:238px minmax(0,1fr)
-}
-.app:has(>.rail) .rail{
-  position:sticky;
-  top:0;
-  height:100vh;
-  height:100dvh
-}
-.app:has(>.rail) main{
-  margin-left:0
-}
+/* One grid owns the rail and content; no :has() or fixed-position fallback. */
 .brand{
   display:flex;
   gap:10px;
@@ -257,7 +247,9 @@ h3{
   margin-top:10px
 }
 main{
-  margin-left:238px;
+  min-width:0;
+  width:100%;
+  margin:0 auto;
   max-width:1040px;
   padding:42px 48px 32px;
   outline:none
@@ -1119,13 +1111,8 @@ dialog::backdrop{
     display:none
   }
   .app{
-    max-width:600px
-  }
-  .app:has(>.rail){
+    max-width:600px;
     display:block
-  }
-  .app:has(>.rail) main{
-    margin-left:0
   }
   main{
     margin:0;
@@ -1918,7 +1905,8 @@ body.modal-open{
   .search-modes .chip{
     padding:10px 4px;
     font-size:12px;
-    white-space:nowrap;
+    white-space:normal;
+    line-height:1.35;
     min-width:0
   }
 
@@ -1964,29 +1952,17 @@ body.modal-open{
 
 @media(min-width:1000px){
   .app{
-    max-width:1800px
-  }
-  .app:has(>.rail){
+    max-width:1800px;
     grid-template-columns:224px minmax(0,1fr)
   }
   .rail{
     width:224px;
     padding:32px 22px
   }
+  /* Center the whole column once. Narrow forms share its left edge. */
   main{
-    margin-left:224px;
-    max-width:none;
-    padding:40px 0 28px
-  }
-  .app:has(>.rail) main{
-    margin-left:0
-  }
-  main>*{
     max-width:1160px;
-    margin-left:auto;
-    margin-right:auto;
-    padding-left:44px;
-    padding-right:44px
+    padding:40px 44px 28px
   }
   .cards{
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -2030,7 +2006,7 @@ body.modal-open{
   .filter-selects select{
     max-width:200px
   }
-  .picker-form{
+  #discover-form{
     max-width:900px
   }
   .explore-list{
@@ -2056,9 +2032,7 @@ body.modal-open{
 
 @media(min-width:1450px){
   main{
-    padding:48px 0 28px
-  }
-  main>*{
+    padding:48px 44px 28px;
     max-width:1240px
   }
   .cards{
@@ -2132,7 +2106,7 @@ body.modal-open{
   .collection-grid{
     grid-template-columns:repeat(2,minmax(0,1fr))
   }
-  .person-search{
+  #person-search{
     max-width:720px
   }
   .collection-filter-panel{
