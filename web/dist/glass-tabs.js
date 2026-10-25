@@ -22,7 +22,7 @@ function move(indicator,to,from){
   {...phase(.48,1.4,1.55),offset:.36},
   {...phase(1,1.06,.96),offset:.76},
   {...phase(1),offset:1}
- ],{duration:880,easing:'cubic-bezier(.25,.6,.3,1)'});
+ ],{duration:704,easing:'cubic-bezier(.25,.6,.3,1)'});
 }
 function bounceIcon(target,group){
  const glyph=target.querySelector('.nav-icon');if(!glyph||reduced.matches)return;
@@ -33,7 +33,7 @@ function bounceIcon(target,group){
   {transform:'translate3d(0,-3px,0) scale(1.16) rotate(4deg)',offset:.42},
   {transform:'translate3d(0,1px,0) scale(.98) rotate(-2deg)',offset:.73},
   {transform:'translate3d(0,0,0) scale(1) rotate(0deg)',offset:1}
- ],{duration:960,easing:'ease-out'});
+ ],{duration:768,easing:'ease-out'});
 }
 
 function sync(){
