@@ -84,7 +84,7 @@ dialog::backdrop { background:var(--backdrop); }
 .nav-icon svg { display:block; }
 .segmented { display:flex; width:max-content; max-width:100%; padding:4px; gap:4px; background:var(--bg-1); border:1px solid var(--line); border-radius:14px; margin-bottom:20px; }
 .segmented .chip { flex:1 1 auto; min-height:38px; padding:8px 16px; border:0; border-radius:10px; background:transparent; color:var(--muted); }
-.segmented .chip[aria-pressed=true] { background:var(--raised); color:var(--text); box-shadow:0 1px 4px #00000012; }
+.segmented .chip[aria-pressed=true] { background:var(--accent); color:var(--on-accent); box-shadow:0 1px 4px #00000012; font-weight:650; }
 .search-modes .chip[aria-pressed=true] { background:var(--accent-bg); border-color:var(--accent-bg); }
 /* Pack actions: watching first; maintenance behind a disclosure. */
 .sheet-head { padding:24px 24px 12px; align-items:center; }
@@ -92,8 +92,11 @@ dialog::backdrop { background:var(--backdrop); }
 .sheet-body { padding:0 24px 24px; }
 .sheet-meta { margin:4px 0; font-size:13px; }
 .detail-status { margin:12px 0 16px; }
-.pack-primary { margin:0 0 10px; }
-.pack-secondary { display:flex; gap:10px; align-items:start; margin:0 0 28px; }
+.pack-primary { display:flex; gap:10px; align-items:stretch; margin:0 0 20px; }
+.pack-primary>.primary { flex:1; min-width:0; padding-inline:12px; font-size:13px; }
+.pack-primary>.pack-more { flex:0 0 auto; padding-inline:14px; font-size:13px; }
+.pack-primary svg { width:18px; height:18px; flex-shrink:0; }
+.pack-secondary { display:flex; gap:10px; align-items:start; margin:-10px 0 24px; }
 .pack-secondary>.secondary { flex:1; min-width:0; white-space:normal; font-size:13px; }
 .pack-secondary>.pack-more { flex:0 0 auto; }
 .pack-tools-list { padding:6px; margin:16px 0; border:1px solid var(--line); border-radius:16px; background:var(--bg); }
@@ -110,7 +113,10 @@ dialog::backdrop { background:var(--backdrop); }
 .settings-heading { margin-bottom:8px; }
 .settings-heading h2 { font-size:17px; line-height:1.4; }
 .settings-heading p,.settings-section-title p { margin-top:5px; color:var(--muted); font-size:12px; line-height:1.6; }
-.settings-group .setting-row { padding:16px 0; gap:12px; }
+.settings-group .setting-row { display:grid; grid-template-columns:minmax(0,1fr) 76px 18px; align-items:center; padding:16px 0; gap:12px; }
+.settings-group .setting-row .setting-value { text-align:right; }
+.settings-group .setting-row .toggle { grid-column:2; justify-self:end; }
+.settings-group .settings-body .setting-row { grid-template-columns:minmax(0,1fr) 76px 18px; }
 .settings-group .setting-row:last-child { border-bottom:0; padding-bottom:4px; }
 .setting-copy strong { display:block; font-size:14px; font-weight:550; line-height:1.4; }
 .setting-copy p { font-size:12px; line-height:1.5; margin-top:5px; }
@@ -184,7 +190,7 @@ dialog::backdrop { background:var(--backdrop); }
 .collection-filter-panel { border-color:var(--line); }
 .person-role,.person-meta,.preload-status { color:var(--muted); }
 input[type=checkbox] { accent-color:var(--accent); }
-@media(min-width:1000px) { .settings-layout { grid-template-columns:repeat(2,minmax(0,1fr)); } .settings-layout>#queue-limits { grid-row:span 3; } }
+@media(min-width:1000px) { .settings-layout { grid-template-columns:repeat(2,minmax(0,1fr)); } .settings-layout>#queue-limits { grid-row:span 2; } }
 @media(max-width:760px) {
  main { padding-top:calc(24px + env(safe-area-inset-top)); padding-bottom:calc(100px + env(safe-area-inset-bottom)); }
  #mobile-nav { background:var(--nav-bg); border-color:var(--line); padding:8px 12px calc(8px + env(safe-area-inset-bottom)); gap:4px; }
@@ -213,7 +219,7 @@ input[type=checkbox] { accent-color:var(--accent); }
 }
 @media(max-width:350px) {
  .settings-layout>.settings-group { padding:16px; }
- .setting-row { flex-wrap:wrap; }
+ .settings-group .setting-row { grid-template-columns:minmax(0,1fr) 62px 14px; gap:8px; }
  .setting-copy { flex:1 1 140px; }
  .setting-value { font-size:12px; }
  .setting-row>svg { width:14px; }
@@ -223,4 +229,34 @@ input[type=checkbox] { accent-color:var(--accent); }
 }
 @media(prefers-reduced-motion:reduce) {
  *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+}
+
+/* Search starts with one coherent form and useful routes into discovery. */
+.release-search-form { padding:16px; border:1px solid var(--line); background:var(--surface); border-radius:20px; margin-bottom:24px; }
+.release-search-form .segmented { width:100%; margin:0 0 12px; }
+.release-search-form .segmented .chip { flex:1; }
+.release-search-form .search-box { margin:0; background:var(--bg); }
+.search-box [hidden] { display:none; }
+.search-start { padding:4px 0 12px; }
+.search-start h2 { font-size:15px; margin:0 0 14px; }
+.search-examples { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 30px; }
+.search-examples button { font-size:12px; padding:10px 12px; gap:8px; min-height:44px; }
+.search-examples svg { width:16px; height:16px; }
+.search-shortcuts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.search-shortcuts button { display:flex; align-items:center; gap:14px; padding:20px; border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--accent); text-align:left; }
+.search-shortcuts button>span { flex:1; min-width:0; }
+.search-shortcuts strong { display:block; color:var(--text); font-size:14px; }
+.search-shortcuts small { display:block; margin-top:5px; color:var(--muted); font-size:12px; line-height:1.5; }
+.search-shortcuts button>svg { width:24px; height:24px; flex-shrink:0; }
+.search-shortcuts button>svg:last-child { width:16px; }
+@media(max-width:760px) {
+ .search-shortcuts { grid-template-columns:minmax(0,1fr); }
+ .search-shortcuts button { padding:16px; }
+ .release-search-form { padding:12px; }
+}
+@media(max-width:350px) {
+ .pack-primary { gap:8px; }
+ .pack-primary>.primary { padding-inline:8px; font-size:12px; }
+ .pack-primary>.pack-more { padding-inline:10px; font-size:12px; gap:4px; }
+ .pack-primary>.primary svg { display:none; }
 }

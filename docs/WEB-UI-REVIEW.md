@@ -36,3 +36,11 @@
 Проверено 72 сочетания (3 палитры × 6 маршрутов × 4 ширины: 320, 390, 768, 1440 px): горизонтального переполнения нет. Отдельно проверены раскрытая интеграция TMDB, меню дополнительных действий, возврат к эпизодам, перезагрузка с выбранной темой и системный режим. Изолированный API задерживал ответы для визуальной проверки skeleton; рабочие загрузки не затрагивались.
 
 `npm test`: 56/56; проверка синтаксиса успешна. Новый тест проверяет сохранение темы после перезапуска, валидацию и одновременное изменение других настроек без потери токенов. Физический iPhone не подключён: мобильная проверка выполнена во встроенном браузере.
+
+## Interaction polish after phone feedback
+
+- Keep the refresh control enabled and reuse unchanged header markup during background polling. A delayed synthetic API verified that the control remains focused through refresh completion.
+- Move appearance below connection, directly above demonstration, in a closed disclosure showing the selected theme. Align settings values and the volume toggle on a common right edge.
+- Give selected segmented filters a solid accent background in all themes. Put More beside Jellyfin for both movies and series; rename the series control to explain the download starting point and disclose what happens to earlier files.
+- Use a specific empty-download message. Group release type and the matching title field, hide the clear button when empty, and offer example searches plus discovery shortcuts.
+- Validation: 56 web tests and syntax checks passed; 36 browser combinations (three themes, four routes, 320/390/1440 px) had no horizontal overflow or misaligned settings controls. Checked example search, switching type, clearing, and film/series dialogs at 320 px.
