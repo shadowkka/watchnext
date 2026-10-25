@@ -371,3 +371,6 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 .glass-tab-indicator {transform-origin:0 0;will-change:transform;transition:none;}
 :root[data-theme^="glass-"] .glass-tabs-ready>:is(a,.chip) {touch-action:manipulation;}
 @media(prefers-reduced-motion:reduce){.glass-tab-indicator {will-change:auto;}}
+
+/* Let the travelling lens swell beyond the rail without moving its controls. */
+:root[data-theme^="glass-"] :is(#mobile-nav,.segmented).glass-tabs-ready {overflow:visible;}

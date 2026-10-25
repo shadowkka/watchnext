@@ -15,6 +15,6 @@ function browser(reduce=false){
  return {flush(){while(raf.length)raf.shift()();},click(){listeners.click({target:tabs.search});},select(){selected=tabs.search;observers[0]();},stats:()=>({animations,cancels,iconAnimations,frames,options,transform:indicator.style.transform})};
 }
 test('Safari paint between click and hashchange does not cancel or replay navigation movement',()=>{
- const b=browser();b.flush();b.click();assert.equal(b.stats().animations,1);assert.equal(b.stats().iconAnimations,1);assert.equal(b.stats().frames.length,4);assert.equal(b.stats().options.duration,440);b.flush();assert.equal(b.stats().cancels,0);b.select();b.flush();assert.equal(b.stats().animations,1);assert.equal(b.stats().cancels,0);assert.equal(b.stats().transform,'translate3d(80px,0px,0)');b.select();b.flush();assert.equal(b.stats().animations,1);
+ const b=browser();b.flush();b.click();assert.equal(b.stats().animations,1);assert.equal(b.stats().iconAnimations,1);assert.equal(b.stats().frames.length,4);assert.equal(b.stats().options.duration,880);b.flush();assert.equal(b.stats().cancels,0);b.select();b.flush();assert.equal(b.stats().animations,1);assert.equal(b.stats().cancels,0);assert.equal(b.stats().transform,'translate3d(80px,0px,0)');b.select();b.flush();assert.equal(b.stats().animations,1);
 });
 test('reduced motion switches tabs without animation',()=>{const b=browser(true);b.flush();b.click();b.select();b.flush();assert.equal(b.stats().animations,0);assert.equal(b.stats().iconAnimations,0);assert.equal(b.stats().transform,'translate3d(80px,0px,0)');});
