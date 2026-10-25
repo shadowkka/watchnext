@@ -40,7 +40,10 @@ services:
     restart: unless-stopped
   flaresolverr:
     dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
-    networks: [default, search_dns]
+    networks:
+      default: {}
+      search_dns:
+        ipv4_address: ${SEARCH_FLARESOLVERR_IP:-172.30.53.4}
     depends_on: [dnsproxy]
     image: ghcr.io/flaresolverr/flaresolverr@sha256:c80ae007ce2ccdcd217a12426e4f039ef763ff90738c808d38810c3e59323767
     environment:
@@ -54,7 +57,10 @@ services:
     restart: unless-stopped
   jackett:
     dns: ['${SEARCH_DNS_IP:-172.30.53.2}']
-    networks: [default, search_dns]
+    networks:
+      default: {}
+      search_dns:
+        ipv4_address: ${SEARCH_JACKETT_IP:-172.30.53.3}
     depends_on: [dnsproxy]
     image: lscr.io/linuxserver/jackett@sha256:5e0a9785ee4edeb30a4644391d94b4ce2ba233caf2fc82915ef215ef00efc0d5
     environment:
@@ -76,8 +82,15 @@ services:
       JACKETT_URL: http://jackett:9117
       QBIT_URL: http://qbittorrent:${QBIT_PORT:-8080}
       JELLYFIN_URL: http://jellyfin:8096
+      CATALOG_URL: http://web:8787
       STATE_FILE: /state/state.json
       PYTHONDONTWRITEBYTECODE: '1'
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${SERVER_PORT:-8000}:8000'
+    tmpfs:
+      - /tmp:size=64M,mode=1777
     volumes:
       - ${DATA_DIR:-./data}:/data
       - ./state:/state
@@ -88,6 +101,33 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
+
+  web:
+    build: ./web
+    user: '${PUID:-1000}:${PGID:-1000}'
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      API_BASE: http://queue:8000
+      API_TOKEN: ${API_TOKEN:-}
+      PICKER_DATA_DIR: /web-data/picker
+      WEB_SETTINGS_FILE: /web-data/integrations.json
+    ports:
+      - '${BIND_IP:-127.0.0.1}:${WEB_PORT:-8787}:8787'
+    volumes:
+      - ./web-data:/web-data
+    depends_on: [queue]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    pids_limit: 64
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8787/web-config').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   search_dns:

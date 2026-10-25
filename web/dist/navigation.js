@@ -1,0 +1,1 @@
+export function routeForHash(hash){const key=String(hash||'').replace(/^#/,'');if(key==='random')return {tab:'search',mode:'random'};if(['explore','watch'].includes(key))return {tab:'search',mode:'discover'};return {tab:['queue','search','subscriptions','settings'].includes(key)?key:'queue',mode:'release'};}
