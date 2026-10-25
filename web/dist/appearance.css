@@ -354,3 +354,8 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 @media(min-width:800px){.personal-lists {grid-template-columns:1fr 1fr;}}
 #explore-root>.segmented {width:min(100%,480px);}
 #explore-root>.segmented .chip:first-child {flex-grow:1.35;}
+
+:is(.explore-movie-actions,.discover-card-actions) {gap:10px;}
+:is(.explore-movie-actions,.discover-card-actions) .secondary {min-height:44px;font-weight:600;}
+:root[data-theme^="glass-"] :is(.explore-movie-actions,.discover-card-actions) .secondary.outline {border-radius:22px;background:color-mix(in srgb,var(--bg) 24%,transparent);color:var(--text);box-shadow:inset 0 1px 0 #ffffff26;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+:is(.explore-movie-actions,.discover-card-actions) .seen-button:disabled {color:var(--muted);opacity:1;box-shadow:none;cursor:default;}

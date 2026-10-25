@@ -1800,18 +1800,7 @@ body.modal-open{
   margin-top:18px;
   flex-wrap:wrap
 }
-.explore-seen{
-  background:transparent;
-  border:1px solid var(--line);
-  border-radius:12px;
-  color:inherit;
-  padding:10px 14px;
-  cursor:pointer
-}
-.explore-seen:disabled{
-  opacity:.6;
-  cursor:default
-}
+
 .explore-movie-actions{
   flex-wrap:wrap
 }
@@ -1819,11 +1808,8 @@ body.modal-open{
   white-space:nowrap
 }
 @media(max-width:450px){
-  .explore-movie-actions .secondary{
+  .explore-movie-actions .secondary:first-child{
     flex:1 1 100%
-  }
-  .explore-movie-actions .explore-seen{
-    flex:1
   }
   .collection-card{
     min-height:200px
