@@ -38,7 +38,7 @@
  --skeleton-shine:#ffffffb3; --scroll-thumb:#b8b1c8;
 }
 @media(prefers-color-scheme:light) {
- :root[data-theme="system"] {
+ :root[data-theme="system"],:root[data-theme="glass-system"] {
  color-scheme:light;
  --bg:#f5f4f8; --bg-0:#ecebf2; --bg-1:#eeedf4; --bg-2:#f5f4f8; --bg-3:#faf9fc; --bg-4:#e9e6f0;
  --surface:#ffffff; --raised:#eeecf4; --line:#dedbe8;
@@ -304,3 +304,5 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 :root[data-theme^="glass-"] #mobile-nav a>span:last-child {font-size:11px;font-weight:600;line-height:15px;}
 :root[data-theme^="glass-"] #mobile-nav a.active {color:var(--text);background:color-mix(in srgb,var(--accent) 18%,transparent);}
 :root[data-theme^="glass-"] #mobile-nav svg {stroke-width:2.1;}
+
+.theme-preview-glass-system {background:linear-gradient(115deg,#dae4f5 50%,#252537 50%);}

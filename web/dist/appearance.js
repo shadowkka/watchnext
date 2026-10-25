@@ -6,6 +6,7 @@ export const themes = [
   ['light', 'Светлая', 'Светлый фон · индиго'],
   ['glass-light', 'Liquid Glass · светлая', 'Прозрачные поверхности · голубой'],
   ['glass-dark', 'Liquid Glass · тёмная', 'Тёмное стекло · лаванда'],
+  ['glass-system', 'Liquid Glass · как на устройстве', 'Светлое или тёмное стекло'],
   ['system', 'Как на устройстве', 'Светлая или графит'],
 ];
 export const normalizeTheme = value => themes.some(([id]) => id === value) ? value : 'graphite';
