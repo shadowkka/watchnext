@@ -24,7 +24,7 @@
  --glow-a:#34aab51c; --glow-b:#5489d30e; --accent-wash:#77d3d112;
  --scroll-thumb:#4c6c77;
 }
-:root[data-theme="light"] {
+:root[data-theme="light"],:root[data-theme="glass-light"] {
  color-scheme:light;
  --bg:#f5f4f8; --bg-0:#ecebf2; --bg-1:#eeedf4; --bg-2:#f5f4f8; --bg-3:#faf9fc; --bg-4:#e9e6f0;
  --surface:#ffffff; --raised:#eeecf4; --line:#dedbe8;
@@ -260,3 +260,14 @@ input[type=checkbox] { accent-color:var(--accent); }
  .pack-primary>.pack-more { padding-inline:10px; font-size:12px; gap:4px; }
  .pack-primary>.primary svg { display:none; }
 }
+
+:root[data-theme^="glass-"] { --surface:color-mix(in srgb,var(--bg) 66%,transparent); --nav-bg:color-mix(in srgb,var(--bg) 78%,transparent); --glow-a:#6c91eb44; --glow-b:#bd7eca33; }
+:root[data-theme^="glass-"] body { background:radial-gradient(ellipse at 0 15%,var(--glow-a),transparent 65%),radial-gradient(ellipse at 100% 75%,var(--glow-b),transparent 60%),var(--bg);background-attachment:fixed; }
+:root[data-theme^="glass-"] :is(.settings-group,.media-card,.storage,.bottom-nav,.rail,dialog) { backdrop-filter:blur(24px) saturate(135%);-webkit-backdrop-filter:blur(24px) saturate(135%);box-shadow:inset 0 1px 0 #ffffff26,0 8px 24px #0000000d;border:1px solid var(--line); }
+.theme-preview-glass-light {background:linear-gradient(135deg,#c1ddf3,#f4dff1);}
+.theme-preview-glass-dark {background:linear-gradient(135deg,#263455,#342938);}
+.settings-group .setting-row[data-action="number"] {min-height:48px;padding:10px 0;gap:10px;grid-template-columns:minmax(0,1fr) 72px 16px;}
+.settings-layout>.settings-group {padding:16px 18px;}
+.settings-heading {margin-bottom:4px;}
+.settings-disclosure>summary {min-height:28px;}
+select {appearance:none;-webkit-appearance:none;padding-right:38px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23979aa6' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;}

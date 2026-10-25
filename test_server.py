@@ -159,7 +159,7 @@ class ServerApiTest(unittest.TestCase):
                         "Path": "/managed/file.mkv", "ProviderIds": {"Tmdb": "2649", "Imdb": "tt0119174"}}
                 responses = [{"Items": [{"Id": "wrong", "Name": "Игра", "Path": "/other/file.mkv"}, item], "TotalRecordCount": 2}]
                 if kind == "series":
-                    responses.append({"Id": "series123", "ProviderIds": {"Tmdb": "42", "Imdb": "tt1234567"}})
+                    responses.append({"Items": [{"Id": "series123", "ProviderIds": {"Tmdb": "42", "Imdb": "tt1234567"}}]})
                 responses.append({"Id": "server123"})
                 self.fake_j.http.call.side_effect = responses
                 with patch.object(self.worker, "season_by_id", return_value=season), patch.object(self.worker, "dest", return_value=Path("/managed/file.mkv")):

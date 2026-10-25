@@ -566,7 +566,10 @@ def jellyfin_link(pack: str = Query(..., max_length=100), index: Optional[int] =
             if item_id != found.get('Id'):
                 if not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(item_id)):
                     raise ValueError()
-                found = worker.j.http.call('/Items/' + str(item_id))
+                series_items = worker.j.http.call('/Items', query={'ids': str(item_id), 'fields': 'ProviderIds,OriginalTitle'}).get('Items', [])
+                if not series_items:
+                    raise ValueError()
+                found = series_items[0]
         server_id = worker.j.http.call('/System/Info/Public').get('Id', '')
         if not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(item_id)) or not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(server_id)):
             raise ValueError()
