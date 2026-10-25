@@ -61,6 +61,16 @@ class ServerApiTest(unittest.TestCase):
 
         self.client = TestClient(server.app)
 
+    def test_jellyfin_status_checks_authenticated_service_and_handles_outage(self):
+        self.worker.j.http = MagicMock()
+        self.worker.j.http.call.return_value = {'Id': 'synthetic-server'}
+        self.assertEqual(self.client.get('/api/jellyfin/status').json(), {'connected': True})
+        self.worker.j.http.call.assert_called_with('/System/Info', timeout=3)
+        self.worker.j.http.call.side_effect = RuntimeError('offline')
+        self.assertEqual(self.client.get('/api/jellyfin/status').json(), {'connected': False})
+        server.API_TOKEN = 'test-token'
+        self.assertEqual(self.client.get('/api/jellyfin/status').status_code, 401)
+
     def tearDown(self):
         self.tmp.cleanup()
         server.global_worker = None
@@ -139,6 +149,27 @@ class ServerApiTest(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(self.worker.state, before)
         self.assertEqual(self.state_file.read_bytes() if self.state_file.exists() else None, disk)
+
+    def test_jellyfin_metadata_matches_file_and_uses_series_parent(self):
+        for kind in ["movie", "series"]:
+            with self.subTest(kind=kind):
+                season = {"kind": kind, "episodes": [{"index": 0, "published": True}]}
+                self.fake_j.http = MagicMock()
+                item = {"Id": "item123", "SeriesId": "series123", "Name": "Игра", "OriginalTitle": "The Game", "ProductionYear": 1997,
+                        "Path": "/managed/file.mkv", "ProviderIds": {"Tmdb": "2649", "Imdb": "tt0119174"}}
+                responses = [{"Items": [{"Id": "wrong", "Name": "Игра", "Path": "/other/file.mkv"}, item], "TotalRecordCount": 2}]
+                if kind == "series":
+                    responses.append({"Id": "series123", "ProviderIds": {"Tmdb": "42", "Imdb": "tt1234567"}})
+                responses.append({"Id": "server123"})
+                self.fake_j.http.call.side_effect = responses
+                with patch.object(self.worker, "season_by_id", return_value=season), patch.object(self.worker, "dest", return_value=Path("/managed/file.mkv")):
+                    response = self.client.get("/api/jellyfin/link", params={"pack": H1})
+                self.assertEqual(response.status_code, 200)
+                data = response.json()
+                self.assertEqual(data["tmdbId"], "2649" if kind == "movie" else "42")
+                self.assertEqual(data["imdbId"], "tt0119174" if kind == "movie" else "tt1234567")
+                self.assertEqual(data["itemId"], "item123" if kind == "movie" else "series123")
+                self.assertNotIn("Path", data)
 
     def test_pack_crud(self):
         # 1. Add pack

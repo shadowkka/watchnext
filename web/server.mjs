@@ -8,11 +8,12 @@ import {createPicker} from './picker.mjs';
 import {createExplore} from './explore.mjs';
 import {createIntegrations} from './integrations.mjs';
 import {createTMDB} from './tmdb.mjs';
+import {createQueueArtwork} from './queue-artwork.mjs';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'dist');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
-const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/link|search(?:\/(?:resolve|start|jobs\/[a-f0-9]{32}))?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
+const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/(?:link|status)|search(?:\/(?:resolve|start|jobs\/[a-f0-9]{32}))?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
 export function createGateway({base=process.env.API_BASE||'',token=process.env.API_TOKEN||'',certificate=process.env.TLS_CERT,key=process.env.TLS_KEY,pickerDataDir=process.env.PICKER_DATA_DIR,settingsFile=process.env.WEB_SETTINGS_FILE}={}){
- const target=base?normalizeServer(base):'';let picker,explore;const integrations=createIntegrations({file:settingsFile});const tmdb=createTMDB({token:integrations.token});
+ const target=base?normalizeServer(base):'';let picker,explore,queueArtwork;const integrations=createIntegrations({file:settingsFile});const tmdb=createTMDB({token:integrations.token});
  const handler=async(req,res)=>{
   const origin=req.headers.origin;
   if(origin){try{if(new URL(origin).host!==req.headers.host){res.writeHead(403);res.end('Cross-origin requests are not allowed');return;}}catch{res.writeHead(403);res.end();return;}}
@@ -23,6 +24,18 @@ export function createGateway({base=process.env.API_BASE||'',token=process.env.A
    // A configured API credential is also required for integration administration.
    if(token&&req.headers.authorization!==`Bearer ${token}`){res.writeHead(401);res.end();return;}
    try{let result=integrations.publicConfig();if(req.method==='POST'){let body='',size=0;for await(const chunk of req){size+=chunk.length;if(size>8192)throw Error('Слишком большой запрос.');body+=chunk;}const parsed=JSON.parse(body);if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Некорректный запрос.');result=await integrations.update(parsed);}res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){res.writeHead(400,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({detail:error.code?'Не удалось сохранить настройки на сервере.':error.message}));}return;
+  }
+  const artworkMatch=url.pathname.match(/^\/api\/artwork\/pack\/([a-f0-9]{40})$/i);
+  if(artworkMatch&&req.method==='GET'){
+   if(!target){res.writeHead(503);res.end();return;}
+   try{
+    picker ||= createPicker({dataDir:pickerDataDir,tmdb});
+    queueArtwork ||= createQueueArtwork({tmdb,registerMovies:picker.registerMovies});
+    const read=async route=>{const headers={Accept:'application/json'};if(token)headers.Authorization='Bearer '+token;else if(req.headers.authorization)headers.Authorization=req.headers.authorization;
+     const r=await fetch(target+route,{headers,redirect:'error',signal:AbortSignal.timeout(8000)});if(!r.ok)throw Error('Metadata unavailable');return r.json();};
+    const result=await queueArtwork.resolve(artworkMatch[1],read);
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));
+   }catch{res.writeHead(502,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({detail:'Не удалось определить обложку. Повторите позже.'}));}return;
   }
   if(url.pathname.startsWith('/api/explore/')){
    const route=url.pathname.slice('/api/explore/'.length);if(req.method!=='GET'){res.writeHead(405);res.end();return;}

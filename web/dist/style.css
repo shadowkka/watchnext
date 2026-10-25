@@ -2125,3 +2125,16 @@ body.modal-open{
   line-height:1.6
 }
 
+
+/* Compact settings: stable columns and one row of numeric presets. */
+.settings-group .setting-row[data-action="number"]{display:grid;grid-template-columns:minmax(0,1fr) 80px 18px;gap:12px;min-height:64px;padding:16px 0;border-radius:0}
+.settings-group .setting-row[data-action="number"] .setting-value{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+.settings-group .settings-heading{margin-bottom:8px}
+.settings-disclosure summary .service-indicator{flex:none;margin-left:auto;margin-right:14px}
+.service-indicator{display:inline-block;width:9px;height:9px;border-radius:50%;background:#d46070;box-shadow:0 0 0 4px color-mix(in srgb,#d46070 12%,transparent)}
+.service-indicator.connected{background:#57b894;box-shadow:0 0 0 4px color-mix(in srgb,#57b894 12%,transparent)}
+[hidden]{display:none!important}
+#number-form .numeric-editor{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;gap:12px;margin:20px 0}
+#number-form .numeric-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+#number-form .numeric-presets .chip{min-width:0;padding:10px 0;border-radius:12px;justify-content:center}
+#number-form .numeric-presets .chip.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}

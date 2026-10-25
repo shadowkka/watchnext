@@ -519,6 +519,15 @@ def _update_integrations(body, worker):
     return public_settings(data)
 
 
+@app.get("/api/jellyfin/status", dependencies=[Depends(verify_api_token)])
+def jellyfin_status(worker: Worker = Depends(get_worker)):
+    try:
+        info = worker.j.http.call('/System/Info', timeout=3)
+        return {'connected': bool(info.get('Id'))}
+    except Exception:
+        return {'connected': False}
+
+
 @app.get("/api/jellyfin/link", dependencies=[Depends(verify_api_token)])
 def jellyfin_link(pack: str = Query(..., max_length=100), index: Optional[int] = None,
                   worker: Worker = Depends(get_worker)):
@@ -540,7 +549,7 @@ def jellyfin_link(pack: str = Query(..., max_length=100), index: Optional[int] =
     try:
         items, start = [], 0
         while True:
-            page = worker.j.http.call('/Items', query={'recursive': 'true', 'fields': 'Path',
+            page = worker.j.http.call('/Items', query={'recursive': 'true', 'fields': 'Path,ProviderIds,OriginalTitle',
                 'includeItemTypes': 'Episode,Movie,Video', 'startIndex': start, 'limit': 200})
             batch = page.get('Items', [])
             items.extend(batch)
@@ -554,10 +563,21 @@ def jellyfin_link(pack: str = Query(..., max_length=100), index: Optional[int] =
         # The pack opens its series; a specific episode opens its own details.
         if index is None and season.get('kind') != 'movie':
             item_id = found.get('SeriesId') or item_id
+            if item_id != found.get('Id'):
+                if not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(item_id)):
+                    raise ValueError()
+                found = worker.j.http.call('/Items/' + str(item_id))
         server_id = worker.j.http.call('/System/Info/Public').get('Id', '')
         if not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(item_id)) or not re.fullmatch(r'[A-Za-z0-9-]{1,100}', str(server_id)):
             raise ValueError()
-        return {'available': True, 'itemId': item_id, 'serverId': server_id}
+        providers = found.get('ProviderIds') or {}
+        imdb_id, tmdb_id = str(providers.get('Imdb') or ''), str(providers.get('Tmdb') or '')
+        return {'available': True, 'itemId': item_id, 'serverId': server_id,
+                'imdbId': imdb_id if re.fullmatch(r'tt\d{5,12}', imdb_id) else '',
+                'tmdbId': tmdb_id if re.fullmatch(r'[1-9]\d{0,9}', tmdb_id) else '',
+                'title': str(found.get('Name') or '')[:300],
+                'originalTitle': str(found.get('OriginalTitle') or '')[:300],
+                'year': found.get('ProductionYear')}
     except Exception:
         raise HTTPException(502, "Не удалось проверить библиотеку Jellyfin") from None
 
