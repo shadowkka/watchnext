@@ -10,12 +10,32 @@ function move(indicator,to,from){
  indicator.getAnimations().forEach(a=>a.cancel());
  Object.assign(indicator.style,{width:to.width+'px',height:to.height+'px',transform:`translate3d(${to.x}px,${to.y}px,0)`});
  if(!from||reduced.matches||!to.width||!to.height)return;
- // Only transform is animated, so Safari can composite this without relayout.
+ // Stretch around the moving centre, then settle without changing layout.
+ const phase=(t,sx=1,sy=1)=>{
+  const width=from.width+(to.width-from.width)*t,height=from.height+(to.height-from.height)*t;
+  const x=from.x+(to.x-from.x)*t+(width-width*sx)/2;
+  const y=from.y+(to.y-from.y)*t+(height-height*sy)/2;
+  return {transform:`translate3d(${x}px,${y}px,0) scale(${width*sx/to.width},${height*sy/to.height})`};
+ };
  indicator.animate([
-  {transform:`translate3d(${from.x}px,${from.y}px,0) scale(${from.width/to.width},${from.height/to.height})`},
-  {transform:`translate3d(${to.x}px,${to.y}px,0) scale(1,1)`}
- ],{duration:240,easing:'cubic-bezier(.2,.75,.25,1)'});
+  {...phase(0),offset:0},
+  {...phase(.48,1.18,1.08),offset:.36},
+  {...phase(1,1.04,.98),offset:.76},
+  {...phase(1),offset:1}
+ ],{duration:440,easing:'cubic-bezier(.25,.6,.3,1)'});
 }
+function bounceIcon(target,group){
+ const glyph=target.querySelector('.nav-icon');if(!glyph||reduced.matches)return;
+ group.querySelectorAll('.nav-icon').forEach(el=>el.getAnimations().forEach(a=>a.cancel()));
+ glyph.animate([
+  {transform:'translate3d(0,0,0) scale(1) rotate(0deg)',offset:0},
+  {transform:'translate3d(0,1px,0) scale(.9) rotate(-3deg)',offset:.14},
+  {transform:'translate3d(0,-3px,0) scale(1.16) rotate(4deg)',offset:.42},
+  {transform:'translate3d(0,1px,0) scale(.98) rotate(-2deg)',offset:.73},
+  {transform:'translate3d(0,0,0) scale(1) rotate(0deg)',offset:1}
+ ],{duration:480,easing:'ease-out'});
+}
+
 function sync(){
  const glass=document.documentElement.dataset.theme?.startsWith('glass-');
  document.querySelectorAll(selector).forEach(g=>{
@@ -42,7 +62,7 @@ document.addEventListener('click',event=>{
  if(!previous)return;
  const intent={target:identity(target),from:rectWithin(previous,g),at:performance.now(),started:false};
  // The navigation DOM survives page changes; begin its feedback immediately.
- if(g.id==='mobile-nav'&&indicator){const to=rectWithin(target,g);move(indicator,to,intent.from);indicator.dataset.position=JSON.stringify(to);intent.started=true;}
+ if(g.id==='mobile-nav'&&indicator){bounceIcon(target,g);const to=rectWithin(target,g);move(indicator,to,intent.from);indicator.dataset.position=JSON.stringify(to);intent.started=true;}
  pending.set(key(g),intent);
  schedule();
 },true);
@@ -50,5 +70,5 @@ const observer=new MutationObserver(schedule);
 for(const root of [document.querySelector('#content'),document.querySelector('#mobile-nav')])if(root)observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-pressed','aria-current']});
 new MutationObserver(()=>{pending.clear();schedule();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 window.addEventListener('resize',()=>{pending.clear();schedule();});
-reduced.addEventListener('change',()=>{if(reduced.matches)document.querySelectorAll('.glass-tab-indicator').forEach(el=>el.getAnimations().forEach(a=>a.cancel()));pending.clear();schedule();});
+reduced.addEventListener('change',()=>{if(reduced.matches)document.querySelectorAll('.glass-tab-indicator,.nav-icon').forEach(el=>el.getAnimations().forEach(a=>a.cancel()));pending.clear();schedule();});
 schedule();
