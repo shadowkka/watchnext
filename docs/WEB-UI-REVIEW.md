@@ -26,7 +26,7 @@
 Выполнено по следующему запросу пользователя:
 
 - Три палитры («Графит», «Полночь», «Светлая») и системный режим. Цвета общие для всех экранов, полей, меню и диалогов; meta theme-color меняется вместе с темой.
-- Выбор темы сохраняется сразу на сервере; кеш браузера нужен только для первого кадра до ответа сервера. Демо использует локальную настройку.
+- Выбор темы сохраняется локально на устройстве в браузере/WebView; загрузка серверных настроек не меняет оформление.
 - Единый контейнер подсветки иконки в мобильной навигации. Измеренное отклонение центров по обеим осям — 0 px.
 - Фильтры очереди и подписок собраны в один переключатель.
 - Просмотр и выбор старта остаются в карточке; проверка, завершение и удаление перенесены в отдельный диалог «Ещё». Сохранено подтверждение удаления и возврат к карточке.
@@ -40,7 +40,9 @@
 ## Interaction polish after phone feedback
 
 - Keep the refresh control enabled and reuse unchanged header markup during background polling. A delayed synthetic API verified that the control remains focused through refresh completion.
-- Move appearance below connection, directly above demonstration, in a closed disclosure showing the selected theme. Align settings values and the volume toggle on a common right edge.
+- Move appearance below connection, directly above demonstration, in a closed disclosure showing the selected theme. Align settings values on a common right edge. A zero maximum volume disables the cap without a separate toggle.
 - Give selected segmented filters a solid accent background in all themes. Put More beside Jellyfin for both movies and series; rename the series control to explain the download starting point and disclose what happens to earlier files.
 - Use a specific empty-download message. Group release type and the matching title field, hide the clear button when empty, and offer example searches plus discovery shortcuts.
 - Validation: 56 web tests and syntax checks passed; 36 browser combinations (three themes, four routes, 320/390/1440 px) had no horizontal overflow or misaligned settings controls. Checked example search, switching type, clearing, and film/series dialogs at 320 px.
+
+- Device preferences follow-up: remove the shared-interval caption; keep theme local and ignore legacy server theme writes. Add an API regression proving zero disables only the size cap and persists across restart.

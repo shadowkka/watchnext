@@ -122,6 +122,16 @@ class ServerApiTest(unittest.TestCase):
         self.client.post("/api/limits", json={"reserveGb": 20})
         self.assertIsNone(self.worker.state["cap"])
 
+    def test_zero_cap_disables_only_size_limit_and_persists(self):
+        self.client.post("/api/limits", json={"episodeCountLimit": 12, "capGb": 80, "reserveGb": 18})
+        response = self.client.post("/api/limits", json={"capGb": 0})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(self.client.get("/api/status").json()["capGb"])
+        restored = Store(str(self.state_file))
+        self.assertIsNone(restored.data["cap"])
+        self.assertEqual(restored.data["count"], 12)
+        self.assertEqual(restored.data["reserve"], 18 * GB)
+
     def test_invalid_limit_patch_is_atomic(self):
         before = copy.deepcopy(self.worker.state)
         disk = self.state_file.read_bytes() if self.state_file.exists() else None
