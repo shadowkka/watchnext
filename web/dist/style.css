@@ -301,7 +301,7 @@ main{
 }
 .primary{
   background:linear-gradient(135deg,#38bdf8,#0ea5e9);
-  color:#06202e;
+  color:var(--on-accent);
   box-shadow:0 4px 18px #0ea5e926;
 }
 .primary:hover{
@@ -312,7 +312,7 @@ main{
   background:var(--accent-bg)
 }
 .secondary:hover{
-  background:#225068
+  background:var(--raised)
 }
 .outline{
   background:transparent;
@@ -321,14 +321,14 @@ main{
 }
 .outline:hover{
   border-color:var(--accent-muted);
-  background:#38bdf80d
+  background:var(--accent-wash)
 }
 .danger{
   color:var(--red);
-  background:#2c1e24
+  background:var(--danger-bg)
 }
 .danger:hover{
-  background:#3d2830
+  background:var(--danger-hover)
 }
 .full{
   width:100%
@@ -364,7 +364,7 @@ main{
   text-decoration:underline
 }
 .error-banner{
-  background:#30282a;
+  background:var(--warning-bg);
   color:var(--amber);
   align-items:flex-start
 }
@@ -484,7 +484,7 @@ main{
   overflow:hidden;
   display:grid;
   place-items:center;
-  color:#627082
+  color:var(--muted)
 }
 .cover img{
   width:100%;
@@ -575,7 +575,7 @@ main{
   text-align:center;
   font-size:10px;
   letter-spacing:.3px;
-  color:#657184;
+  color:var(--muted);
   margin-top:42px;
   padding:20px 0
 }
@@ -744,7 +744,7 @@ main{
 .toggle span{
   width:46px;
   height:28px;
-  background:#3b4655;
+  background:var(--line);
   border-radius:22px;
   pointer-events:none
 }
@@ -764,7 +764,7 @@ main{
 }
 .toggle input:checked+span::after{
   transform:translateX(18px);
-  background:#06202e
+  background:var(--on-accent)
 }
 .toggle input:focus-visible+span{
   outline:2px solid white;
@@ -1137,10 +1137,10 @@ dialog::backdrop{
     right:0;
     bottom:0;
     justify-content:space-around;
-    background:#0f131af2;
+    background:var(--nav-bg);
     backdrop-filter:blur(20px);
     -webkit-backdrop-filter:blur(20px);
-    border-top:1px solid #2a354280;
+    border-top:1px solid var(--line);
     padding:8px 10px calc(8px + env(safe-area-inset-bottom))
   }
   #mobile-nav a{
@@ -1168,7 +1168,7 @@ dialog::backdrop{
     width:46px;
     height:28px;
     border-radius:16px;
-    background:#38bdf817;
+    background:var(--accent-wash);
     z-index:-1
   }
   .credit{
@@ -1231,7 +1231,7 @@ dialog::backdrop{
     left:calc(50% - 18px);
     height:4px;
     width:36px;
-    background:#8b95a880;
+    background:var(--muted);
     border-radius:5px
   }
   .sheet-body{
@@ -1452,7 +1452,7 @@ body.modal-open{
   margin:12px 0
 }
 .discover-error{
-  background:#c868681a;
+  background:var(--danger-bg);
   color:var(--red);
   border-radius:12px;
   padding:14px;
@@ -1585,7 +1585,7 @@ body.modal-open{
   flex:0 0 48px;
   display:grid;
   place-items:center;
-  background:#38bdf817;
+  background:var(--accent-wash);
   border-radius:50%;
   font-size:15px;
   font-weight:600;
@@ -1616,15 +1616,15 @@ body.modal-open{
   align-items:flex-start;
   text-align:left;
   gap:12px;
-  border:1px solid #38bdf822;
+  border:1px solid var(--line);
   border-radius:20px;
-  background:linear-gradient(145deg,#2e3044,#1c212b);
+  background:linear-gradient(140deg,var(--raised),var(--surface));
   padding:22px;
   color:var(--text);
   min-height:240px
 }
 .collection-card.cannes{
-  background:linear-gradient(145deg,#293a36,#1c2429)
+  background:linear-gradient(140deg,var(--raised),var(--surface))
 }
 .collection-symbol{
   font-size:30px;
@@ -1769,13 +1769,13 @@ body.modal-open{
   margin:0 0 16px
 }
 .collection-card.popular{
-  background:linear-gradient(140deg,#293c4a,#1b222b)
+  background:linear-gradient(140deg,var(--raised),var(--surface))
 }
 .collection-card.themes{
-  background:linear-gradient(140deg,#393249,#1d222c)
+  background:linear-gradient(140deg,var(--raised),var(--surface))
 }
 .collection-card.critics{
-  background:linear-gradient(140deg,#3c3830,#22242b)
+  background:linear-gradient(140deg,var(--raised),var(--surface))
 }
 .collection-tools{
   padding:20px 0 12px;
@@ -1792,7 +1792,7 @@ body.modal-open{
 .exclude-watched input{
   width:19px;
   height:19px;
-  accent-color:#a8b8df
+  accent-color:var(--accent)
 }
 .collection-random{
   display:flex;
@@ -1802,7 +1802,7 @@ body.modal-open{
 }
 .explore-seen{
   background:transparent;
-  border:1px solid #3c4553;
+  border:1px solid var(--line);
   border-radius:12px;
   color:inherit;
   padding:10px 14px;
@@ -1837,7 +1837,7 @@ body.modal-open{
 .collection-filter-panel>summary{
   cursor:pointer;
   padding:14px 0;
-  color:#b8c2d8
+  color:var(--text-secondary)
 }
 .collection-filter-panel[open]>summary{
   margin-bottom:12px
@@ -1845,7 +1845,7 @@ body.modal-open{
 
 .tmdb-credit{
   font-size:12px;
-  color:#aeb9c9;
+  color:var(--muted);
   margin-top:20px
 }
 .tmdb-credit img{
