@@ -390,3 +390,41 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 @supports (height:1cap) {
  .header-copy .home-logo {width:1.08cap;height:1.08cap;vertical-align:-.04cap;}
 }
+
+/* Stable desktop geometry: one form column, consistent action sizing. */
+#toast button {margin-left:16px;padding:8px 12px;min-height:40px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--accent);font:inherit;font-weight:600;cursor:pointer;}
+.service-indicator.checking {background:var(--muted);box-shadow:none;opacity:.55;}
+#settings-draft-note {color:var(--muted);font-size:13px;}
+#settings-draft-note[hidden] {display:none;}
+@media(min-width:1000px){
+ main {padding:32px;max-width:1200px;}
+ #header {margin-bottom:28px;}
+ .settings-layout,.integration-layout {display:grid;grid-template-columns:minmax(0,1fr);gap:12px;max-width:760px;}
+ .settings-layout>.settings-group,.integration-layout>.settings-group {padding:18px 22px;margin:0;grid-column:auto;}
+ .settings-layout .appearance-group {grid-column:auto;}
+ .settings-save {align-items:flex-start;gap:12px;}
+ .settings-save>button {width:auto;min-width:220px;}
+ .settings-section-title,.settings-footnote {max-width:760px;}
+ .settings-body>.full {width:auto;min-width:200px;}
+ .settings-body .field {max-width:640px;}
+ .cards {grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;}
+ .media-card {padding:20px;gap:18px;}
+ .storage {max-width:none;}
+ .filter-selects {display:flex;flex-wrap:wrap;gap:12px;}
+ .filter-selects select {flex:1 1 150px;max-width:none;min-width:0;}
+ #person-search,#discover-form,#filmography-filters {max-width:760px;}
+ #person-search button[type=submit],#discover-form button[type=submit] {width:auto;min-width:220px;justify-self:start;}
+ .collection-tools {align-items:center;}
+ .discover-card-actions,.explore-movie-actions {gap:8px;}
+ .discover-card-actions>button,.explore-movie-actions>button {flex:1 1 auto;}
+ #filmography-more {display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;}
+ #filmography-more>.full {width:auto;min-width:240px;margin:0;}
+ .dialog-footer {gap:12px;}
+}
+
+#toast.visible {pointer-events:auto;}
+@media(min-width:1000px){
+ #content>[data-action="add"] {width:auto;min-width:220px;margin-top:24px;}
+ #content>.segmented {min-width:400px;width:max-content;}
+ #content>.segmented>.chip {flex:1;}
+}

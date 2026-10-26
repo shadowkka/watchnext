@@ -63,10 +63,10 @@ export function createGateway({base=process.env.API_BASE||'',token=process.env.A
    const posterMatch=route.match(/^poster\/(tt\d{5,12})$/);
    if(req.method==='GET'&&posterMatch){try{picker ||= createPicker({dataDir:pickerDataDir,tmdb});const image=await picker.poster(posterMatch[1]);res.writeHead(200,{'Content-Type':image.type,'Content-Length':image.buffer.length,'Cache-Control':'public, max-age=604800','X-Content-Type-Options':'nosniff'});res.end(image.buffer);}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end();}return;}
 
-   if(!((req.method==='GET'&&['status','watched'].includes(route))||(req.method==='POST'&&['pick','details','watched','seen'].includes(route)))){res.writeHead(404);res.end();return;}
+   if(!((req.method==='GET'&&['status','watched'].includes(route))||(req.method==='POST'&&['pick','details','watched','seen','unseen'].includes(route)))){res.writeHead(404);res.end();return;}
    try{let body={};if(req.method==='POST'){let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>4*1024*1024){res.writeHead(413);res.end();return;}chunks.push(chunk);}try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw Error('Не удалось прочитать JSON.');}if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Некорректный запрос.');}
     picker ||= createPicker({dataDir:pickerDataDir,tmdb});
-    const result=route==='status'?await picker.status():route==='pick'?await picker.pick(body):route==='details'?await picker.details(body.ids):route==='seen'?await picker.seen(body.movie):req.method==='GET'?await picker.exportWatched():await picker.importWatched(body.rows);
+    const result=route==='status'?await picker.status():route==='pick'?await picker.pick(body):route==='details'?await picker.details(body.ids):route==='seen'?await picker.seen(body.movie):route==='unseen'?await picker.unseen(body.movie):req.method==='GET'?await picker.exportWatched():await picker.importWatched(body.rows);
     res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(result));
    }catch(error){res.writeHead(400,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify({detail:error.code?'Не удалось прочитать или сохранить каталог на мини-ПК.':String(error.message).slice(0,300)}));}return;
   }
