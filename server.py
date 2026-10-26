@@ -358,7 +358,7 @@ def get_status(worker: Worker = Depends(get_worker)):
             1 for s in state.get("seasons", [])
             if s.get("phase") == "ready" and not s.get("download_idle")
         )
-        total_packs = len(state.get("seasons", []))
+        total_packs = sum(s.get("phase") != "complete" for s in state.get("seasons", []))
 
         cap_gb = (state.get("cap") / GB) if state.get("cap") is not None else None
         reserve_gb = (state.get("reserve", 5 * GB) / GB)
@@ -682,7 +682,7 @@ def serialize_pack(s: Dict[str, Any], torrent_info: Optional[Dict[str, Any]] = N
 @app.get("/api/packs", response_model=List[PackItemResponse], dependencies=[Depends(verify_api_token)])
 def list_packs(worker: Worker = Depends(get_worker)):
     with worker_lock:
-        seasons = worker.ordered_seasons()
+        seasons = [s for s in worker.ordered_seasons() if s.get("phase") != "complete"]
         try:
             infos = {t["hash"]: t for t in worker.q.get("info")}
         except Exception:

@@ -61,6 +61,20 @@ class ServerApiTest(unittest.TestCase):
 
         self.client = TestClient(server.app)
 
+    def test_completed_pack_leaves_queue_but_keeps_history_and_incomplete_series(self):
+        self.worker.add('Film', 1, MAGNET1, kind='movie')
+        self.worker.add('Series', 1, MAGNET2)
+        movie, series = self.worker.state['seasons']
+        movie['phase'] = 'complete'
+        series['phase'] = 'ready'
+        packs = self.client.get('/api/packs').json()
+        self.assertEqual(len(packs), 1)
+        self.assertEqual(packs[0]['hash'], H2)
+        self.assertEqual(self.client.get('/api/status').json()['totalPacksCount'], 1)
+        self.assertIn(movie, self.worker.state['seasons'])
+        movie['phase'] = 'retiring'
+        self.assertEqual(len(self.client.get('/api/packs').json()), 2)
+
     def test_jellyfin_status_checks_authenticated_service_and_handles_outage(self):
         self.worker.j.http = MagicMock()
         self.worker.j.http.call.return_value = {'Id': 'synthetic-server'}

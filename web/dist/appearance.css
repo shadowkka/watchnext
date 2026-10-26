@@ -374,3 +374,7 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 
 /* Let the travelling lens swell beyond the rail without moving its controls. */
 :root[data-theme^="glass-"] :is(#mobile-nav,.segmented).glass-tabs-ready {overflow:visible;}
+
+/* Consistent medium-weight navigation with an accented selected glyph. */
+:is(#mobile-nav,#desktop-nav) .nav-icon svg {stroke-width:2;}
+:root[data-theme] :is(#mobile-nav,#desktop-nav) a.active .nav-icon {color:var(--accent);}
