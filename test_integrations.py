@@ -46,13 +46,22 @@ class Integrations(unittest.TestCase):
         season={'kind':'series','episodes':[episode]}
         calls=[]
         def call(route,query=None):
-            calls.append(route)
+            calls.append((route, query))
+            if route == '/Items' and query.get('ids') == 'series1':
+                return {'Items':[{'Id':'series1','Name':'Matched series','ProviderIds':{'Tmdb':'12345'}}]}
             return {'Id':'server1'} if route.startswith('/System') else {'TotalRecordCount':2,'Items':[{'Id':'wrong','Path':'/other/same-name.mkv'},{'Id':'episode1','SeriesId':'series1','Path':'/data/library/series/e.mkv'}]}
         worker=SimpleNamespace(season_by_id=lambda _:season,dest=lambda s,e:Path('/data/library/series/e.mkv'),j=SimpleNamespace(http=SimpleNamespace(call=call)))
         self.assertEqual(server.jellyfin_link('abc',4,worker)['itemId'],'episode1')
-        self.assertEqual(server.jellyfin_link('abc',None,worker)['itemId'],'series1')
+        series_link = server.jellyfin_link('abc',None,worker)
+        self.assertEqual(series_link['itemId'],'series1')
+        self.assertEqual(series_link['tmdbId'],'12345')
+        self.assertEqual(series_link['title'],'Matched series')
+        self.assertEqual([route for route, _ in calls],
+                         ['/Items','/System/Info/Public','/Items','/Items','/System/Info/Public'])
+        self.assertEqual(calls[3][1]['ids'],'series1')
+        before_unpublished = list(calls)
         episode['published']=False
         self.assertFalse(server.jellyfin_link('abc',4,worker)['available'])
-        self.assertEqual(len(calls),4)
+        self.assertEqual(calls,before_unpublished)
 
 if __name__=='__main__':unittest.main()
