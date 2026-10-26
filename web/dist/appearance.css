@@ -278,7 +278,6 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 :root[data-theme^="glass-"] #mobile-nav a .nav-icon {width:24px;height:24px;background:transparent;box-shadow:none;border-radius:0;}
 :root[data-theme^="glass-"] #mobile-nav a>span:last-child {margin:0;line-height:15px;text-align:center;}
 :root[data-theme^="glass-"] #mobile-nav a.active {background:color-mix(in srgb,var(--accent) 11%,transparent);box-shadow:inset 0 1px 0 #ffffff24;}
-.appearance-group>summary>small {margin:0 0 0 auto;text-align:right;font-size:12px;color:var(--muted);max-width:52%;}
 .settings-layout>section.settings-group {padding:12px 18px 4px;}
 .settings-group .settings-heading {margin:0 0 2px;}
 .settings-group .settings-heading h2 {margin:0;padding:0 0 6px;}
@@ -384,3 +383,10 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 #header .header-copy {min-width:0;}
 #header .header-actions {min-height:44px;align-items:center;}
 #header .header-actions>.small {min-height:44px;}
+
+/* Align the visible mark to the font's capital height, not its line box. */
+.header-copy h1.mobile-brand {display:block;white-space:nowrap;}
+.header-copy .home-logo {display:inline-block;width:.84em;height:.84em;margin:0 .3em 0 0;vertical-align:-.04em;}
+@supports (height:1cap) {
+ .header-copy .home-logo {width:1.08cap;height:1.08cap;vertical-align:-.04cap;}
+}
