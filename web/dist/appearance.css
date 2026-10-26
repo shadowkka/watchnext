@@ -378,3 +378,9 @@ select {appearance:none;-webkit-appearance:none;padding-right:38px!important;bac
 /* Consistent medium-weight navigation with an accented selected glyph. */
 :is(#mobile-nav,#desktop-nav) .nav-icon svg {stroke-width:2;}
 :root[data-theme] :is(#mobile-nav,#desktop-nav) a.active .nav-icon {color:var(--accent);}
+
+/* Reserve the same header row on every route, including pages without actions. */
+#header {min-height:48px;align-items:center;}
+#header .header-copy {min-width:0;}
+#header .header-actions {min-height:44px;align-items:center;}
+#header .header-actions>.small {min-height:44px;}
