@@ -23,3 +23,19 @@ test('global polling interval persists across restart and independent clients wi
   assert.equal(createIntegrations({file}).publicConfig().pollSeconds,3);
  } finally {await fs.rm(dir,{recursive:true,force:true});}
 });
+
+test('legacy shared theme is ignored and removed without altering integration settings',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'watchnext-theme-'));
+ try {
+  const file=path.join(dir,'settings.json');
+  await fs.writeFile(file,JSON.stringify({theme:'light',tmdbToken:'synthetic-token',pollSeconds:3}));
+  const settings=createIntegrations({file});
+  assert.equal('theme' in settings.publicConfig(),false);
+  await settings.update({theme:'midnight',jellyfinUrl:'http://media.local'});
+  const saved=JSON.parse(await fs.readFile(file,'utf8'));
+  assert.equal('theme' in saved,false);
+  assert.equal(saved.pollSeconds,3);
+  assert.equal(saved.tmdbToken,'synthetic-token');
+  assert.equal(createIntegrations({file}).publicConfig().jellyfinUrl,'http://media.local');
+ }finally{await fs.rm(dir,{recursive:true,force:true});}
+});

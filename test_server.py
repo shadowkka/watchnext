@@ -61,6 +61,30 @@ class ServerApiTest(unittest.TestCase):
 
         self.client = TestClient(server.app)
 
+    def test_completed_pack_leaves_queue_but_keeps_history_and_incomplete_series(self):
+        self.worker.add('Film', 1, MAGNET1, kind='movie')
+        self.worker.add('Series', 1, MAGNET2)
+        movie, series = self.worker.state['seasons']
+        movie['phase'] = 'complete'
+        series['phase'] = 'ready'
+        packs = self.client.get('/api/packs').json()
+        self.assertEqual(len(packs), 1)
+        self.assertEqual(packs[0]['hash'], H2)
+        self.assertEqual(self.client.get('/api/status').json()['totalPacksCount'], 1)
+        self.assertIn(movie, self.worker.state['seasons'])
+        movie['phase'] = 'retiring'
+        self.assertEqual(len(self.client.get('/api/packs').json()), 2)
+
+    def test_jellyfin_status_checks_authenticated_service_and_handles_outage(self):
+        self.worker.j.http = MagicMock()
+        self.worker.j.http.call.return_value = {'Id': 'synthetic-server'}
+        self.assertEqual(self.client.get('/api/jellyfin/status').json(), {'connected': True})
+        self.worker.j.http.call.assert_called_with('/System/Info', timeout=3)
+        self.worker.j.http.call.side_effect = RuntimeError('offline')
+        self.assertEqual(self.client.get('/api/jellyfin/status').json(), {'connected': False})
+        server.API_TOKEN = 'test-token'
+        self.assertEqual(self.client.get('/api/jellyfin/status').status_code, 401)
+
     def tearDown(self):
         self.tmp.cleanup()
         server.global_worker = None
@@ -122,6 +146,16 @@ class ServerApiTest(unittest.TestCase):
         self.client.post("/api/limits", json={"reserveGb": 20})
         self.assertIsNone(self.worker.state["cap"])
 
+    def test_zero_cap_disables_only_size_limit_and_persists(self):
+        self.client.post("/api/limits", json={"episodeCountLimit": 12, "capGb": 80, "reserveGb": 18})
+        response = self.client.post("/api/limits", json={"capGb": 0})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(self.client.get("/api/status").json()["capGb"])
+        restored = Store(str(self.state_file))
+        self.assertIsNone(restored.data["cap"])
+        self.assertEqual(restored.data["count"], 12)
+        self.assertEqual(restored.data["reserve"], 18 * GB)
+
     def test_invalid_limit_patch_is_atomic(self):
         before = copy.deepcopy(self.worker.state)
         disk = self.state_file.read_bytes() if self.state_file.exists() else None
@@ -129,6 +163,27 @@ class ServerApiTest(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(self.worker.state, before)
         self.assertEqual(self.state_file.read_bytes() if self.state_file.exists() else None, disk)
+
+    def test_jellyfin_metadata_matches_file_and_uses_series_parent(self):
+        for kind in ["movie", "series"]:
+            with self.subTest(kind=kind):
+                season = {"kind": kind, "episodes": [{"index": 0, "published": True}]}
+                self.fake_j.http = MagicMock()
+                item = {"Id": "item123", "SeriesId": "series123", "Name": "Игра", "OriginalTitle": "The Game", "ProductionYear": 1997,
+                        "Path": "/managed/file.mkv", "ProviderIds": {"Tmdb": "2649", "Imdb": "tt0119174"}}
+                responses = [{"Items": [{"Id": "wrong", "Name": "Игра", "Path": "/other/file.mkv"}, item], "TotalRecordCount": 2}]
+                if kind == "series":
+                    responses.append({"Items": [{"Id": "series123", "ProviderIds": {"Tmdb": "42", "Imdb": "tt1234567"}}]})
+                responses.append({"Id": "server123"})
+                self.fake_j.http.call.side_effect = responses
+                with patch.object(self.worker, "season_by_id", return_value=season), patch.object(self.worker, "dest", return_value=Path("/managed/file.mkv")):
+                    response = self.client.get("/api/jellyfin/link", params={"pack": H1})
+                self.assertEqual(response.status_code, 200)
+                data = response.json()
+                self.assertEqual(data["tmdbId"], "2649" if kind == "movie" else "42")
+                self.assertEqual(data["imdbId"], "tt0119174" if kind == "movie" else "tt1234567")
+                self.assertEqual(data["itemId"], "item123" if kind == "movie" else "series123")
+                self.assertNotIn("Path", data)
 
     def test_pack_crud(self):
         # 1. Add pack

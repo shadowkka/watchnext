@@ -4,15 +4,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {normalizeServer} from './dist/core.js';
+import {createWishlist} from './wishlist.mjs';
 import {createPicker} from './picker.mjs';
 import {createExplore} from './explore.mjs';
 import {createIntegrations} from './integrations.mjs';
 import {createTMDB} from './tmdb.mjs';
+import {createQueueArtwork} from './queue-artwork.mjs';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'dist');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
-const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/link|search(?:\/(?:resolve|start|jobs\/[a-f0-9]{32}))?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
+const endpoint=/^\/api\/(?:status|limits|integrations|jellyfin\/(?:link|status)|search(?:\/(?:resolve|start|jobs\/[a-f0-9]{32}))?|shows\/search|queue\/(?:toggle-pause|pause|resume)|packs(?:\/add|\/[^/]+(?:\/(?:from|finish|retry)|\/episodes\/\d+)?)?|subscriptions(?:\/[^/]+(?:\/import)?)?)$/;
 export function createGateway({base=process.env.API_BASE||'',token=process.env.API_TOKEN||'',certificate=process.env.TLS_CERT,key=process.env.TLS_KEY,pickerDataDir=process.env.PICKER_DATA_DIR,settingsFile=process.env.WEB_SETTINGS_FILE}={}){
- const target=base?normalizeServer(base):'';let picker,explore;const integrations=createIntegrations({file:settingsFile});const tmdb=createTMDB({token:integrations.token});
+ const target=base?normalizeServer(base):'';let picker,explore,queueArtwork,wishlist;const integrations=createIntegrations({file:settingsFile});const tmdb=createTMDB({token:integrations.token});
  const handler=async(req,res)=>{
   const origin=req.headers.origin;
   if(origin){try{if(new URL(origin).host!==req.headers.host){res.writeHead(403);res.end('Cross-origin requests are not allowed');return;}}catch{res.writeHead(403);res.end();return;}}
@@ -23,6 +25,27 @@ export function createGateway({base=process.env.API_BASE||'',token=process.env.A
    // A configured API credential is also required for integration administration.
    if(token&&req.headers.authorization!==`Bearer ${token}`){res.writeHead(401);res.end();return;}
    try{let result=integrations.publicConfig();if(req.method==='POST'){let body='',size=0;for await(const chunk of req){size+=chunk.length;if(size>8192)throw Error('Слишком большой запрос.');body+=chunk;}const parsed=JSON.parse(body);if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Некорректный запрос.');result=await integrations.update(parsed);}res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){res.writeHead(400,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({detail:error.code?'Не удалось сохранить настройки на сервере.':error.message}));}return;
+  }
+  const artworkMatch=url.pathname.match(/^\/api\/artwork\/pack\/([a-f0-9]{40})$/i);
+  if(artworkMatch&&req.method==='GET'){
+   if(!target){res.writeHead(503);res.end();return;}
+   try{
+    picker ||= createPicker({dataDir:pickerDataDir,tmdb});
+    queueArtwork ||= createQueueArtwork({tmdb,registerMovies:picker.registerMovies});
+    const read=async route=>{const headers={Accept:'application/json'};if(token)headers.Authorization='Bearer '+token;else if(req.headers.authorization)headers.Authorization=req.headers.authorization;
+     const r=await fetch(target+route,{headers,redirect:'error',signal:AbortSignal.timeout(8000)});if(!r.ok)throw Error('Metadata unavailable');return r.json();};
+    const result=await queueArtwork.resolve(artworkMatch[1],read);
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));
+   }catch{res.writeHead(502,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({detail:'Не удалось определить обложку. Повторите позже.'}));}return;
+  }
+  if(url.pathname==='/api/wishlist'){
+   if(!['GET','POST'].includes(req.method)){res.writeHead(405);res.end();return;}
+   if(token&&req.headers.authorization!==`Bearer ${token}`){res.writeHead(401);res.end();return;}
+   try{wishlist ||= createWishlist({dataDir:pickerDataDir});let result;
+    if(req.method==='GET')result=await wishlist.list();
+    else{let size=0,chunks=[];for await(const c of req){size+=c.length;if(size>8192){res.writeHead(413);res.end();return;}chunks.push(c);}const body=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Некорректный запрос.');result=body.remove?await wishlist.remove(body.remove):await wishlist.add(body.movie);}
+    res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(result));
+   }catch(error){res.writeHead(400,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify({detail:error.code?'Не удалось сохранить список на сервере.':String(error.message).slice(0,200)}));}return;
   }
   if(url.pathname.startsWith('/api/explore/')){
    const route=url.pathname.slice('/api/explore/'.length);if(req.method!=='GET'){res.writeHead(405);res.end();return;}
@@ -40,10 +63,10 @@ export function createGateway({base=process.env.API_BASE||'',token=process.env.A
    const posterMatch=route.match(/^poster\/(tt\d{5,12})$/);
    if(req.method==='GET'&&posterMatch){try{picker ||= createPicker({dataDir:pickerDataDir,tmdb});const image=await picker.poster(posterMatch[1]);res.writeHead(200,{'Content-Type':image.type,'Content-Length':image.buffer.length,'Cache-Control':'public, max-age=604800','X-Content-Type-Options':'nosniff'});res.end(image.buffer);}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end();}return;}
 
-   if(!((req.method==='GET'&&['status','watched'].includes(route))||(req.method==='POST'&&['pick','details','watched','seen'].includes(route)))){res.writeHead(404);res.end();return;}
+   if(!((req.method==='GET'&&['status','watched'].includes(route))||(req.method==='POST'&&['pick','details','watched','seen','unseen'].includes(route)))){res.writeHead(404);res.end();return;}
    try{let body={};if(req.method==='POST'){let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>4*1024*1024){res.writeHead(413);res.end();return;}chunks.push(chunk);}try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw Error('Не удалось прочитать JSON.');}if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Некорректный запрос.');}
     picker ||= createPicker({dataDir:pickerDataDir,tmdb});
-    const result=route==='status'?await picker.status():route==='pick'?await picker.pick(body):route==='details'?await picker.details(body.ids):route==='seen'?await picker.seen(body.movie):req.method==='GET'?await picker.exportWatched():await picker.importWatched(body.rows);
+    const result=route==='status'?await picker.status():route==='pick'?await picker.pick(body):route==='details'?await picker.details(body.ids):route==='seen'?await picker.seen(body.movie):route==='unseen'?await picker.unseen(body.movie):req.method==='GET'?await picker.exportWatched():await picker.importWatched(body.rows);
     res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(result));
    }catch(error){res.writeHead(400,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify({detail:error.code?'Не удалось прочитать или сохранить каталог на мини-ПК.':String(error.message).slice(0,300)}));}return;
   }
